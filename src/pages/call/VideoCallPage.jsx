@@ -55,10 +55,15 @@ const VideoCallPage = () => {
     }
   }, [localStream]);
 
-  // Attach remote video
+  // Attach remote video/audio and force play
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
+    const videoEl = remoteVideoRef.current;
+    if (videoEl && remoteStream) {
+      videoEl.srcObject = remoteStream;
+      videoEl.volume = 1.0;
+      videoEl.play().catch((err) => {
+        console.warn("[VideoCall] Remote video autoplay blocked:", err.message);
+      });
     }
   }, [remoteStream, hasRemoteVideo, isConnected]);
 

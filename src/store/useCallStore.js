@@ -7,7 +7,17 @@ const configuration = {
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
     { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
   ],
+};
+
+// High-quality audio constraints for clear voice calls
+const AUDIO_CONSTRAINTS = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  sampleRate: 48000,
+  channelCount: 1,
 };
 
 const useCallStore = create((set, get) => ({
@@ -57,13 +67,13 @@ const useCallStore = create((set, get) => ({
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         video: type === "video",
-        audio: true,
+        audio: AUDIO_CONSTRAINTS,
       });
     } catch (error) {
       console.warn("Failed to get media:", error);
       if (type === "video") {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+          stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: AUDIO_CONSTRAINTS });
           type = "voice";
           import("react-hot-toast").then(m => m.toast("Camera unavailable, using voice only", { icon: "⚠️" }));
         } catch (e2) {
@@ -95,7 +105,7 @@ const useCallStore = create((set, get) => ({
 
       // Receive remote tracks
       pc.ontrack = (event) => {
-        import("react-hot-toast").then(m => m.toast(`Connected: Receiving ${event.track.kind} track from peer!`));
+        console.log(`[WebRTC] Receiving ${event.track.kind} track from peer`);
         if (event.streams && event.streams[0]) {
           set({ remoteStream: event.streams[0] });
         } else {
@@ -131,12 +141,11 @@ const useCallStore = create((set, get) => ({
 
       const socket = useSocketStore.getState().socket;
       socket?.emit("callUser", {
-        to: otherUser._id,
+        to: otherUser._id?.toString() || otherUser._id,
         offer,
         callType: type,
       });
-      
-      import("react-hot-toast").then(m => m.toast.success("Ringing... waiting for user to answer"));
+      console.log("[Call] Emitting callUser to:", otherUser._id?.toString(), "type:", type);
     } catch (error) {
       console.error("Error accessing media devices or WebRTC:", error);
       import("react-hot-toast").then(m => m.toast.error("Call failed to initialize."));
@@ -157,12 +166,12 @@ const useCallStore = create((set, get) => ({
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             video: true,
-            audio: true,
+            audio: AUDIO_CONSTRAINTS,
           });
         } catch (e1) {
           // fallback to voice
           try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+            stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: AUDIO_CONSTRAINTS });
             actualCallType = "voice";
             import("react-hot-toast").then(m => m.toast("Camera unavailable, answering with voice", { icon: "⚠️" }));
           } catch (e2) {
@@ -174,7 +183,7 @@ const useCallStore = create((set, get) => ({
       } else {
         stream = await navigator.mediaDevices.getUserMedia({
           video: false,
-          audio: true,
+          audio: AUDIO_CONSTRAINTS,
         });
       }
     } catch (error) {
@@ -204,7 +213,7 @@ const useCallStore = create((set, get) => ({
       });
 
       pc.ontrack = (event) => {
-        import("react-hot-toast").then(m => m.toast(`Connected: Receiving ${event.track.kind} track!`));
+        console.log(`[WebRTC] Receiving ${event.track.kind} track`);
         if (event.streams && event.streams[0]) {
           set({ remoteStream: event.streams[0] });
         } else {
@@ -263,14 +272,6 @@ const useCallStore = create((set, get) => ({
     }
   },
 
-  // ─── Reject an incoming call ───
-  rejectCall: (incomingCall) => {
-    const socket = useSocketStore.getState().socket;
-    if (incomingCall) {
-      socket?.emit("rejectCall", { to: incomingCall.from });
-      set({ incomingCall: null });
-    }
-  },
 
   // ─── Handle the other peer's answer ───
   handleAnswer: async (answer) => {
@@ -394,6 +395,16 @@ const useCallStore = create((set, get) => ({
         console.warn("Camera switch not available:", e2.message);
       }
     }
+  },
+
+  // ─── Reject incoming call (callee declines) ───
+  rejectCall: (call) => {
+    const callData = call || get().incomingCall;
+    if (callData) {
+      const socket = useSocketStore.getState().socket;
+      socket?.emit("rejectCall", { to: callData.from });
+    }
+    set({ incomingCall: null });
   },
 
   // ─── End the call (initiated by this user) ───

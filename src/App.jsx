@@ -44,7 +44,7 @@ import RunMessages from "./pages/run/RunMessages";
 export const App = () => {
   const { user, token, checkAuth } = useAuthStore();
   const { connect, disconnect, socket } = useSocketStore();
-  const { callState, callType, incomingCall, answerCall, rejectCall } = useCallStore();
+  const { callState, callType } = useCallStore();
 
   useEffect(() => {
     checkAuth();
@@ -63,8 +63,7 @@ export const App = () => {
     if (!socket) return;
 
     const handleIncomingCall = (call) => {
-      console.log("INCOMING CALL SIGNAL RECEIVED:", call);
-      toast.success("Incoming call signal received! (Debug)");
+      console.log("[Socket] incomingCall received:", call);
       useCallStore.getState().setIncomingCall(call);
     };
 
@@ -88,7 +87,7 @@ export const App = () => {
 
     const handleCallFailed = ({ message }) => {
       useCallStore.getState().receiveCallEnded();
-      toast.error(message || "Call failed");
+      toast.error(message || "User is offline or unavailable");
     };
 
     socket.on("incomingCall", handleIncomingCall);
@@ -180,41 +179,13 @@ export const App = () => {
           <Route path="*" element={<Navigate to="/chat" replace />} />
         </Routes>
 
-        {/* Global Overlays */}
+        {/* Incoming call overlay — shown when someone calls you */}
         <IncomingCallModal />
 
-        {/* Fallback Inline Modal just in case component fails */}
-        {incomingCall && (
-          <div 
-            className="fixed inset-0 flex flex-col items-center justify-center bg-black/90 text-white select-none backdrop-blur-xl"
-            style={{ zIndex: 2147483647 }}
-          >
-            <div className="text-center">
-              <h2 className="text-4xl font-bold mb-4">
-                Incoming {incomingCall.callType} Call
-              </h2>
-              <p className="text-xl mb-8">{incomingCall.fromUser?.fullName}</p>
-              <div className="flex gap-8 justify-center">
-                <button 
-                  onClick={() => rejectCall(incomingCall)}
-                  className="bg-red-500 hover:bg-red-600 px-8 py-4 rounded-full font-bold text-lg transition-all"
-                >
-                  Decline
-                </button>
-                <button 
-                  onClick={() => answerCall(incomingCall)}
-                  className="bg-emerald-500 hover:bg-emerald-600 px-8 py-4 rounded-full font-bold text-lg transition-all animate-pulse"
-                >
-                  Accept
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* Active call pages — only when you are the caller or call is connected */}
+        {(callState === "calling" || callState === "connected") && (
+          callType === "video" ? <VideoCallPage /> : <VoiceCallPage />
         )}
-        
-        {callState === 'calling' || callState === 'connected' || callState === 'ringing' ? (
-          callType === 'video' ? <VideoCallPage /> : <VoiceCallPage />
-        ) : null}
 
       </BrowserRouter>
     </GoogleOAuthProvider>

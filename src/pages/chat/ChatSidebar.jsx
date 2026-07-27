@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { MessageSquare, Users, Settings, Search, Plus, UserPlus, UsersRound, X, Loader2 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { MessageSquare, Users, Settings, Search, Plus, UserPlus, UsersRound, X, Loader2, LogOut } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import useChatStore from "../../store/useChatStore";
 import useSocketStore from "../../store/useSocketStore";
 import useAuthStore from "../../store/useAuthStore";
@@ -10,8 +10,10 @@ import { toast } from "react-hot-toast";
 
 const ChatSidebar = () => {
   const { conversations, activeConversation, setActiveConversation, fetchConversations, markMessagesRead } = useChatStore();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupName, setGroupName] = useState("");
@@ -36,6 +38,18 @@ const ChatSidebar = () => {
       setStatusGroups(res.data.data.statusGroups || []);
     } catch (err) {
       // Status API might not be ready
+    }
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      navigate("/login", { replace: true });
+    } catch {
+      navigate("/login", { replace: true });
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -360,6 +374,21 @@ const ChatSidebar = () => {
         >
           <Settings size={20} />
         </Link>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          aria-label="Logout"
+          title="Logout"
+          className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 text-gray-500 hover:text-red-500 hover:bg-red-50 disabled:opacity-50 active:scale-95"
+        >
+          {isLoggingOut ? (
+            <Loader2 size={20} className="animate-spin" />
+          ) : (
+            <LogOut size={20} />
+          )}
+        </button>
       </nav>
 
       {/* Create Group Modal */}

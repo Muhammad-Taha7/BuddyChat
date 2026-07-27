@@ -37,10 +37,16 @@ const VoiceCallPage = () => {
     return () => stopRingtone();
   }, [callState]);
 
-  // Attach remote audio
+  // Attach remote audio and force play
   useEffect(() => {
-    if (remoteAudioRef.current && remoteStream) {
-      remoteAudioRef.current.srcObject = remoteStream;
+    const audioEl = remoteAudioRef.current;
+    if (audioEl && remoteStream) {
+      audioEl.srcObject = remoteStream;
+      audioEl.volume = 1.0;
+      // Handle browsers that block autoplay — force play()
+      audioEl.play().catch((err) => {
+        console.warn("[VoiceCall] Audio autoplay blocked:", err.message);
+      });
     }
   }, [remoteStream, isConnected]);
 
@@ -56,8 +62,8 @@ const VoiceCallPage = () => {
 
   return (
     <div className="fixed inset-0 z-[90] flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-gray-950 to-black text-white select-none">
-      {/* Hidden audio */}
-      <audio ref={remoteAudioRef} autoPlay />
+      {/* Hidden audio element for remote voice */}
+      <audio ref={remoteAudioRef} autoPlay playsInline muted={false} style={{ display: "none" }} />
 
       {/* ─── TOP SECTION ─── */}
       <div className="flex flex-col items-center pt-14 sm:pt-20 w-full">

@@ -13,7 +13,6 @@ const IncomingCallModal = () => {
 
   useEffect(() => {
     if (incomingCall) {
-      import("react-hot-toast").then(m => m.toast.success("DEBUG: Modal component mounted with call data!", { duration: 5000, position: 'bottom-center' }));
       startRingtone("incoming");
       setElapsed(0);
       const timer = setInterval(() => setElapsed((e) => e + 1), 1000);
