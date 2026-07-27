@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Link, useNavigate } from "react-router-dom";
+
 import { toast } from "react-hot-toast";
 import { Mail, Lock, ArrowRight, Loader2, MessageSquare, Sparkles, ShieldCheck, Zap } from "lucide-react";
 import useAuthStore from "../../store/useAuthStore";
