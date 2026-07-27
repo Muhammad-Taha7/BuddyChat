@@ -16,12 +16,14 @@ import { toast } from "react-hot-toast";
 import Avatar from "../../components/Avatar";
 import useAuthStore from "../../store/useAuthStore";
 import useChatStore from "../../store/useChatStore";
+import { useDialog } from "../../components/DialogProvider";
 
 const ProfilePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
   const { getOrCreateConversation } = useChatStore();
+  const { showConfirm, showSuccess, showError } = useDialog();
 
   const [profileData, setProfileData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +93,7 @@ const ProfilePage = () => {
         newPassword: passwordForm.newPassword,
       });
       if (res.data.success) {
-        toast.success("Password updated successfully");
+        showSuccess("Password Updated", "Your password has been changed successfully.");
         setShowPasswordModal(false);
         setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       }
@@ -212,16 +214,21 @@ const ProfilePage = () => {
               <div className="flex w-full gap-2 mt-2">
                 {isFriend && (
                   <button
-                    onClick={async () => {
-                      if(window.confirm("Are you sure you want to remove this friend?")) {
-                        try {
-                          await axios.delete(`/api/users/friend/${id}`);
-                          toast.success("Friend removed");
-                          setProfileData(prev => ({ ...prev, isFriend: false }));
-                        } catch(e) {
-                          toast.error("Failed to remove friend");
-                        }
-                      }
+                    onClick={() => {
+                      showConfirm(
+                        "Unfriend",
+                        "Are you sure you want to remove this friend?",
+                        async () => {
+                          try {
+                            await axios.delete(`/api/users/friend/${id}`);
+                            showSuccess("Unfriended", "Friend removed successfully.");
+                            setProfileData(prev => ({ ...prev, isFriend: false }));
+                          } catch(e) {
+                            showError("Failed", "Failed to remove friend.");
+                          }
+                        },
+                        { confirmText: "Unfriend" }
+                      );
                     }}
                     className="flex-1 py-2.5 rounded-xl font-medium text-xs text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
                   >
@@ -229,14 +236,24 @@ const ProfilePage = () => {
                   </button>
                 )}
                 <button
-                  onClick={async () => {
-                    try {
-                      const res = await axios.put(`/api/users/block/${id}`);
-                      toast.success(res.data.message);
-                      // Update local state if needed
-                    } catch(e) {
-                      toast.error("Failed to block/unblock user");
-                    }
+                  onClick={() => {
+                    const isBlocked = currentUser?.blockedUsers?.includes(id);
+                    showConfirm(
+                      isBlocked ? "Unblock User" : "Block User",
+                      isBlocked 
+                        ? "Are you sure you want to unblock this user? They will be able to message you again."
+                        : "Are you sure you want to block this user? They will no longer be able to message you.",
+                      async () => {
+                        try {
+                          const res = await axios.put(`/api/users/block/${id}`);
+                          showSuccess("Success", res.data.message);
+                          // Update local state if needed (usually handled by auth store refetch or similar)
+                        } catch(e) {
+                          showError("Failed", "Failed to block/unblock user.");
+                        }
+                      },
+                      { confirmText: isBlocked ? "Unblock" : "Block", type: isBlocked ? "info" : "confirm-danger" }
+                    );
                   }}
                   className={`flex-1 py-2.5 rounded-xl font-medium text-xs transition-colors ${
                     currentUser?.blockedUsers?.includes(id)

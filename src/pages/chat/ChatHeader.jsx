@@ -5,16 +5,16 @@ import useChatStore from "../../store/useChatStore";
 import useAuthStore from "../../store/useAuthStore";
 import useCallStore from "../../store/useCallStore";
 import useSocketStore from "../../store/useSocketStore";
-import { toast } from "react-hot-toast";
+import { useDialog } from "../../components/DialogProvider";
 
 const ChatHeader = () => {
   const { activeConversation, setActiveConversation, typingUsers, clearChatHistory, deleteGroup } = useChatStore();
   const { user } = useAuthStore();
   const { isUserOnline } = useSocketStore();
   const { initiateCall } = useCallStore();
+  const { showConfirm, showSuccess, showError } = useDialog();
 
   const [showMenu, setShowMenu] = useState(false);
-  const [confirmationMode, setConfirmationMode] = useState(null); // 'clear' or 'delete'
   const menuRef = useRef(null);
 
   // Close menu on outside click
@@ -22,7 +22,6 @@ const ChatHeader = () => {
     const handleClose = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShowMenu(false);
-        setConfirmationMode(null);
       }
     };
     if (showMenu) {
@@ -44,26 +43,38 @@ const ChatHeader = () => {
     initiateCall(otherUser, type);
   };
 
-  const handleClearChat = async () => {
-    const success = await clearChatHistory(activeConversation._id);
-    if (success) {
-      toast.success("Chat cleared");
-    } else {
-      toast.error("Failed to clear chat");
-    }
+  const handleClearChat = () => {
     setShowMenu(false);
-    setConfirmationMode(null);
+    showConfirm(
+      "Clear Chat History",
+      "This will remove all messages from your view only. This action cannot be undone.",
+      async () => {
+        const success = await clearChatHistory(activeConversation._id);
+        if (success) {
+          showSuccess("Chat Cleared", "Your chat history has been cleared successfully.");
+        } else {
+          showError("Failed", "Could not clear chat. Please try again.");
+        }
+      },
+      { confirmText: "Clear Chat", cancelText: "Cancel", type: "warning" }
+    );
   };
 
-  const handleDeleteGroup = async () => {
-    const success = await deleteGroup(activeConversation._id);
-    if (success) {
-      toast.success("Group deleted successfully");
-    } else {
-      toast.error("Failed to delete group");
-    }
+  const handleDeleteGroup = () => {
     setShowMenu(false);
-    setConfirmationMode(null);
+    showConfirm(
+      "Delete Group",
+      "This will permanently delete the group and remove it for all members. This cannot be undone.",
+      async () => {
+        const success = await deleteGroup(activeConversation._id);
+        if (success) {
+          showSuccess("Group Deleted", "The group has been deleted successfully.");
+        } else {
+          showError("Failed", "Could not delete group. Please try again.");
+        }
+      },
+      { confirmText: "Delete Group", cancelText: "Cancel" }
+    );
   };
 
   return (
@@ -143,7 +154,7 @@ const ChatHeader = () => {
         <div className="relative" ref={menuRef}>
           <button
             type="button"
-            onClick={() => { setShowMenu(!showMenu); setConfirmationMode(null); }}
+            onClick={() => setShowMenu(!showMenu)}
             aria-label="More options"
             className="w-9 h-9 flex items-center justify-center bg-gray-50 border border-gray-200 hover:bg-black hover:text-white hover:border-black text-gray-800 transition-all active:scale-95"
           >
@@ -151,62 +162,22 @@ const ChatHeader = () => {
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-full mt-2 bg-white border border-black p-1 min-w-[180px] z-50">
-              {!confirmationMode ? (
-                <>
-                  <button
-                    onClick={() => setConfirmationMode("clear")}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-red-600 hover:bg-red-50 transition-colors text-left"
-                  >
-                    <Trash2 size={14} />
-                    Clear Chat
-                  </button>
-                  {activeConversation.isGroup && activeConversation.groupAdmins?.includes(user._id) && (
-                    <button
-                      onClick={() => setConfirmationMode("delete")}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-red-600 hover:bg-red-50 transition-colors text-left"
-                    >
-                      <Trash2 size={14} />
-                      Delete Group
-                    </button>
-                  )}
-                </>
-              ) : confirmationMode === "clear" ? (
-                <div className="p-3">
-                  <p className="text-[11px] font-medium text-gray-600 mb-3">Clear all messages? This only affects your view.</p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleClearChat}
-                      className="flex-1 text-[10px] font-bold uppercase tracking-wider py-1.5 bg-red-600 text-white hover:bg-red-700 transition-colors"
-                    >
-                      Clear
-                    </button>
-                    <button
-                      onClick={() => setConfirmationMode(null)}
-                      className="flex-1 text-[10px] font-bold uppercase tracking-wider py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3">
-                  <p className="text-[11px] font-medium text-gray-600 mb-3">Delete group? This will remove it for everyone.</p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleDeleteGroup}
-                      className="flex-1 text-[10px] font-bold uppercase tracking-wider py-1.5 bg-red-600 text-white hover:bg-red-700 transition-colors"
-                    >
-                      Delete
-                    </button>
-                    <button
-                      onClick={() => setConfirmationMode(null)}
-                      className="flex-1 text-[10px] font-bold uppercase tracking-wider py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+            <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl p-1 min-w-[180px] z-50 animate-fadeIn">
+              <button
+                onClick={handleClearChat}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left"
+              >
+                <Trash2 size={14} />
+                Clear Chat History
+              </button>
+              {activeConversation.isGroup && activeConversation.groupAdmins?.includes(user._id) && (
+                <button
+                  onClick={handleDeleteGroup}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left"
+                >
+                  <Trash2 size={14} />
+                  Delete Group
+                </button>
               )}
             </div>
           )}

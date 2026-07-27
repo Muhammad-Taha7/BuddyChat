@@ -257,7 +257,7 @@ const MessageInput = () => {
   if (!activeConversation) return null;
 
   return (
-    <div className="p-4 sm:p-6 bg-white/95 backdrop-blur-md border-t border-gray-200">
+    <div className="p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-white/95 backdrop-blur-md border-t border-gray-200">
       <input
         type="file"
         ref={fileInputRef}

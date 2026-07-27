@@ -1,105 +1,239 @@
 import React, { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X, AlertTriangle, Info, CheckCircle, AlertCircle } from "lucide-react";
 
-const Dialog = ({ isOpen, onClose, title, message, type = "info", onConfirm, confirmText = "OK", cancelText = "Cancel" }) => {
+// ─── Animated Green Tick SVG ─────────────────────────────
+const AnimatedTick = () => (
+  <svg
+    className="w-8 h-8 text-emerald-500"
+    viewBox="0 0 52 52"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Circle */}
+    <circle
+      cx="26"
+      cy="26"
+      r="24"
+      stroke="currentColor"
+      strokeWidth="3"
+      fill="none"
+      className="animate-draw-circle"
+      style={{
+        strokeDasharray: 150,
+        strokeDashoffset: 150,
+        animation: "drawCircle 0.5s ease forwards",
+      }}
+    />
+    {/* Checkmark */}
+    <path
+      d="M14.5 26L22 34L37.5 18"
+      stroke="currentColor"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{
+        strokeDasharray: 40,
+        strokeDashoffset: 40,
+        animation: "drawCheck 0.4s ease 0.4s forwards",
+      }}
+    />
+  </svg>
+);
+
+// ─── Icon by type ─────────────────────────────────────────
+const TypeIcon = ({ type }) => {
+  if (type === "success") return <AnimatedTick />;
+  if (type === "error")
+    return (
+      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+        <AlertCircle size={22} className="text-red-500" />
+      </div>
+    );
+  if (type === "warning")
+    return (
+      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+        <AlertTriangle size={22} className="text-amber-500" />
+      </div>
+    );
+  if (type === "confirm-danger")
+    return (
+      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+        <Trash2 size={20} className="text-red-500" />
+      </div>
+    );
+  return (
+    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+      <Info size={22} className="text-blue-500" />
+    </div>
+  );
+};
+
+// ─── Main Dialog Component ───────────────────────────────
+const Dialog = ({
+  isOpen,
+  onClose,
+  title,
+  message,
+  children,
+  type = "info",
+  onConfirm,
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  hideCancel = false,
+  autoClose = false, // ms to auto-close (for success dialogs)
+}) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
-      // Prevent body scroll when dialog is open
       document.body.style.overflow = "hidden";
+
+      // Auto-close for success dialogs
+      if (autoClose && autoClose > 0) {
+        const timer = setTimeout(() => handleClose(), autoClose);
+        return () => clearTimeout(timer);
+      }
     } else {
       setIsVisible(false);
-      // Restore body scroll when dialog is closed
       document.body.style.overflow = "unset";
     }
-
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [isOpen]);
+  }, [isOpen, autoClose]);
 
   const handleClose = () => {
     setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 200);
+    setTimeout(() => onClose(), 200);
   };
 
   const handleConfirm = () => {
-    if (onConfirm) {
-      onConfirm();
-    }
+    if (onConfirm) onConfirm();
     handleClose();
+  };
+
+  const handleBackdropClick = (e) => {
+    // Don't close on backdrop click for danger confirmations
+    if (type === "confirm-danger") return;
+    if (e.target === e.currentTarget) handleClose();
   };
 
   if (!isOpen) return null;
 
+  const isDanger = type === "error" || type === "confirm-danger";
+  const isSuccess = type === "success";
+
   return (
-    <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
-      onClick={handleClose}
+    <div
+      className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-200 ${
+        isVisible ? "opacity-100" : "opacity-0"
+      }`}
+      style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+      onClick={handleBackdropClick}
     >
-      <div 
-        className={`bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md mx-4 transform transition-all duration-200 ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+      <div
+        className={`bg-white w-full sm:rounded-2xl sm:max-w-md shadow-2xl border border-gray-100 transform transition-all duration-300 ${
+          isVisible
+            ? "translate-y-0 opacity-100 scale-100"
+            : "translate-y-8 opacity-0 scale-95"
+        }`}
+        style={{
+          // Mobile: bottom sheet
+          borderRadius: "20px 20px 0 0",
+        }}
+        // Override for sm+
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            {type === "error" && <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-              <X size={18} className="text-red-500" />
-            </div>}
-            {type === "success" && <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>}
-            {type === "warning" && <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>}
-            {type === "info" && <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>}
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-          </div>
-          <button
-            onClick={handleClose}
-            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X size={18} />
-          </button>
+        {/* Handle bar — mobile only */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 bg-gray-300 rounded-full" />
         </div>
+
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-5 pb-4">
+          <div className="flex items-center gap-3">
+            <TypeIcon type={type} />
+            <h3 className="text-lg font-bold text-gray-900 leading-tight">{title}</h3>
+          </div>
+          {!isDanger && (
+            <button
+              onClick={handleClose}
+              className="ml-2 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+              aria-label="Close dialog"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-gray-100 mx-6" />
 
         {/* Content */}
-        <div className="p-6">
-          <p className="text-gray-600 leading-relaxed">{message}</p>
-        </div>
+        {(message || children) && (
+          <div className="px-6 py-4">
+            {message && (
+              <p className="text-sm text-gray-600 leading-relaxed">{message}</p>
+            )}
+            {children}
+          </div>
+        )}
 
         {/* Actions */}
-        <div className="flex gap-3 p-6 pt-0">
-          {onConfirm && (
+        <div
+          className={`flex gap-3 px-6 pb-6 pt-2 ${
+            isSuccess ? "justify-center" : "flex-col sm:flex-row"
+          }`}
+          style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+        >
+          {/* For success type with no confirm — just a close button */}
+          {isSuccess && !onConfirm && (
+            <button
+              onClick={handleClose}
+              className="px-8 py-2.5 rounded-xl font-semibold text-sm bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-200"
+            >
+              {cancelText === "Cancel" ? "Great!" : cancelText}
+            </button>
+          )}
+
+          {/* Confirm button (for non-success types) */}
+          {onConfirm && !isSuccess && (
             <button
               onClick={handleConfirm}
-              className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${type === "error" ? 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500' : 
-                type === "success" ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500' : 
-                type === "warning" ? 'bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-yellow-500' : 
-                'bg-black text-white hover:bg-gray-800 focus:ring-gray-500'}`}
+              className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                isDanger
+                  ? "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm shadow-red-200"
+                  : "bg-black text-white hover:bg-gray-800 focus:ring-gray-500"
+              }`}
             >
               {confirmText}
             </button>
           )}
-          <button
-            onClick={handleClose}
-            className="px-4 py-2.5 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
-          >
-            {cancelText}
-          </button>
+
+          {/* Success with confirm button */}
+          {onConfirm && isSuccess && (
+            <button
+              onClick={handleConfirm}
+              className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm"
+            >
+              {confirmText}
+            </button>
+          )}
+
+          {/* Cancel button */}
+          {!hideCancel && (
+            <button
+              onClick={handleClose}
+              className={`${
+                isSuccess
+                  ? "hidden"
+                  : "flex-1 py-3 px-4 rounded-xl font-semibold text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+              }`}
+            >
+              {cancelText}
+            </button>
+          )}
         </div>
       </div>
     </div>

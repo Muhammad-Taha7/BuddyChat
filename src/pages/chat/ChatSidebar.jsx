@@ -20,6 +20,7 @@ import useAuthStore from "../../store/useAuthStore";
 import useNotificationStore from "../../store/useNotificationStore";
 import Avatar from "../../components/Avatar";
 import Dialog from "../../components/Dialog";
+import { useDialog } from "../../components/DialogProvider";
 import axios from "../../lib/axios";
 import { toast } from "react-hot-toast";
 
@@ -197,6 +198,7 @@ const ChatSidebar = () => {
   const { user, logout } = useAuthStore();
   const { unreadCount, fetchNotifications, markAsRead, markAllAsRead, notifications } = useNotificationStore();
   const socket = useSocketStore((state) => state.socket);
+  const { showSuccess, showError } = useDialog();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -237,10 +239,10 @@ const ChatSidebar = () => {
     if (!statusId) return;
     try {
       await axios.post(`/api/status/${statusId}/like`);
-      toast.success("Liked status");
+      showSuccess("Liked!", "You liked this status.");
       fetchStatuses();
     } catch {
-      toast.error("Failed to like status");
+      showError("Failed", "Failed to like status.");
     }
   };
 
@@ -496,7 +498,7 @@ const ChatSidebar = () => {
       </div>
 
       {/* Floating Bottom Dock Navbar */}
-      <nav className="absolute bottom-4 left-4 right-4 h-16 rounded-full bg-gray-50/90 border border-gray-200 backdrop-blur-md flex items-center justify-around px-3 shadow-2xl z-20">
+      <nav className="absolute bottom-4 left-4 right-4 h-16 rounded-full bg-gray-50/90 border border-gray-200 backdrop-blur-md flex items-center justify-around px-3 shadow-2xl z-20 mb-safe">
         <Link 
           to="/chat" 
           aria-label="Chats"

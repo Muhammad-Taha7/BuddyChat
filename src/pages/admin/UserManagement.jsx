@@ -3,8 +3,10 @@ import axios from "../../lib/axios";
 import { toast } from "react-hot-toast";
 import { Search, Trash2, ShieldAlert, Loader2, Users } from "lucide-react";
 import Avatar from "../../components/Avatar";
+import { useDialog } from "../../components/DialogProvider";
 
 const UserManagement = () => {
+  const { showConfirm, showSuccess, showError } = useDialog();
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -34,21 +36,19 @@ const UserManagement = () => {
   }, [search]);
 
   const handleDeleteUser = async (userId, username) => {
-    if (
-      window.confirm(
-        `Are you sure you want to permanently delete @${username}? This action cannot be undone.`
-      )
-    ) {
-      try {
-        await axios.delete(`/api/admin/users/${userId}`);
-        toast.success("User deleted successfully");
-        fetchUsers(pagination.page, search);
-      } catch (error) {
-        toast.error(
-          error.response?.data?.message || "Failed to delete user"
-        );
+    showConfirm(
+      "Delete User",
+      `Are you sure you want to permanently delete @${username}? This action cannot be undone.`,
+      async () => {
+        try {
+          await axios.delete(`/api/admin/users/${userId}`);
+          showSuccess("User Deleted", `@${username} has been deleted successfully.`);
+          fetchUsers(pagination.page, search);
+        } catch (error) {
+          showError("Failed", error.response?.data?.message || "Failed to delete user.");
+        }
       }
-    }
+    );
   };
 
   return (

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -7,10 +7,13 @@ import {
   MessageSquare,
   LogOut,
   ShieldCheck,
+  Menu,
+  X,
 } from "lucide-react";
 import useAuthStore from "../../store/useAuthStore";
 
 const AdminLayout = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const { logout } = useAuthStore();
 
@@ -34,22 +37,56 @@ const AdminLayout = () => {
 
   return (
     <div className="min-h-screen w-full bg-white text-gray-900 flex overflow-hidden font-sans">
+      {/* Mobile Top Bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-30 flex items-center px-4 justify-between">
+        <div className="flex items-center gap-2 text-[#fc4a56]">
+          <ShieldCheck size={24} />
+          <span className="font-bold text-gray-900 tracking-tight">BuddyChat Admin</span>
+        </div>
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+        >
+          <Menu size={24} />
+        </button>
+      </div>
+
+      {/* Backdrop for mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation Panel */}
-      <aside className="w-64 shrink-0 flex flex-col justify-between bg-gray-50/60 backdrop-blur-2xl border-r border-gray-200/80 p-5 z-20">
+      <aside 
+        className={`fixed md:static inset-y-0 left-0 w-64 bg-gray-50/95 md:bg-gray-50/60 backdrop-blur-2xl border-r border-gray-200/80 p-5 z-50 flex flex-col justify-between transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
         <div className="space-y-6">
           {/* Logo Header */}
-          <div className="flex items-center gap-3 px-2 pt-1">
-            <div className="p-2 rounded-xl bg-[#fc4a56]/10 border border-[#fc4a56]/20 text-[#fc4a56]">
-              <ShieldCheck size={24} />
+          <div className="flex items-center justify-between px-2 pt-1">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-[#fc4a56]/10 border border-[#fc4a56]/20 text-[#fc4a56]">
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-gray-900 tracking-tight leading-tight">
+                  BuddyChat
+                </h2>
+                <span className="text-[10px] font-semibold tracking-wider text-gray-500 uppercase">
+                  Control Panel
+                </span>
+              </div>
             </div>
-            <div>
-              <h2 className="text-base font-bold text-gray-900 tracking-tight leading-tight">
-                BuddyChat
-              </h2>
-              <span className="text-[10px] font-semibold tracking-wider text-gray-500 uppercase">
-                Control Panel
-              </span>
-            </div>
+            <button 
+              className="md:hidden p-1 text-gray-500 hover:bg-gray-200 rounded-md"
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <X size={20} />
+            </button>
           </div>
 
           {/* Navigation Links */}
@@ -60,6 +97,7 @@ const AdminLayout = () => {
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={() => setIsSidebarOpen(false)}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 ${
                     isActive
                       ? "bg-[#fc4a56]/10 text-[#fc4a56] font-semibold border-r-2 border-[#fc4a56] shadow-sm shadow-[#fc4a56]/10"
@@ -101,8 +139,10 @@ const AdminLayout = () => {
       </aside>
 
       {/* Main Scrollable View Area */}
-      <main className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto">
-        <Outlet />
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 pt-20 md:pt-8 w-full">
+        <div className="max-w-7xl mx-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

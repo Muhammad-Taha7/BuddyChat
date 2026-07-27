@@ -59,8 +59,10 @@ const ChatLayout = () => {
   }, [socket, addMessage, setTyping]);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white text-zinc-900 selection:bg-zinc-900 selection:text-white font-sans">
-      
+    <div
+      className="flex w-screen overflow-hidden bg-white text-zinc-900 selection:bg-zinc-900 selection:text-white font-sans"
+      style={{ height: "100dvh" }} // dvh: dynamic viewport height — critical for mobile browsers
+    >
       {/* Sidebar Panel (Hidden on mobile when conversation is active) */}
       <div
         className={`${
