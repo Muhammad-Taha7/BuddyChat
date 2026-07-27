@@ -54,7 +54,7 @@ const RunDashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await axiosInstance.get("/admin/stats");
+        const res = await axiosInstance.get("/api/admin/stats");
         setStats(res.data.data.stats);
         setCharts(res.data.data.charts);
       } catch (error) {

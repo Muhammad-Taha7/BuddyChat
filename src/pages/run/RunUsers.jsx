@@ -23,7 +23,7 @@ const RunUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axiosInstance.get("/admin/users");
+      const res = await axiosInstance.get("/api/admin/users");
       setUsers(res.data.data.users);
     } catch (error) {
       console.error(error);
@@ -34,7 +34,7 @@ const RunUsers = () => {
 
   const handleBanUser = async (userId) => {
     try {
-      const res = await axiosInstance.put(`/admin/users/${userId}/ban`);
+      const res = await axiosInstance.put(`/api/admin/users/${userId}/ban`);
       toast.success(res.data.message);
       setUsers(users.map(u =>
         u._id === userId ? { ...u, isBanned: res.data.data.isBanned } : u
@@ -48,7 +48,7 @@ const RunUsers = () => {
     setSelectedUser(userId);
     setDetailsLoading(true);
     try {
-      const res = await axiosInstance.get(`/admin/users/${userId}/details`);
+      const res = await axiosInstance.get(`/api/admin/users/${userId}/details`);
       setUserDetails(res.data.data);
     } catch (error) {
       toast.error("Failed to load user details");

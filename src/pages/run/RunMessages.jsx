@@ -10,7 +10,7 @@ const RunMessages = () => {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const res = await axiosInstance.get("/admin/messages-clear");
+        const res = await axiosInstance.get("/api/admin/messages-clear");
         setMessages(res.data.data.messages);
       } catch (error) {
         console.error(error);
