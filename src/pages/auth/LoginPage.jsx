@@ -31,14 +31,12 @@ const LoginPage = () => {
       if (res.success) {
         toast.success(res.message);
 
-        if (res.data.requiresVerification) {
+        if (res.data?.requiresVerification) {
           navigate("/verify-otp", {
             state: { email: formData.email, type: "signup" },
           });
-        } else if (res.data.requiresOtp) {
-          navigate("/verify-otp", {
-            state: { email: formData.email, type: "login" },
-          });
+        } else {
+          navigate("/chat");
         }
       }
     } catch (error) {
@@ -58,17 +56,17 @@ const LoginPage = () => {
   });
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-gray-50 text-gray-900 overflow-hidden selection:bg-[#fc4a56]/30 selection:text-gray-900">
+    <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-white text-gray-900 overflow-hidden selection:bg-black/30 selection:text-gray-900">
       {/* Background Ambient Glows */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#fc4a56]/10 rounded-full blur-[130px] pointer-events-none -z-10" />
-      <div className="absolute bottom-10 left-10 w-[350px] h-[350px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none -z-10" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gray-100 rounded-full blur-[130px] pointer-events-none -z-10" />
+      <div className="absolute bottom-10 left-10 w-[350px] h-[350px] bg-gray-100 rounded-full blur-[100px] pointer-events-none -z-10" />
 
       {/* Main Authentication Card */}
       <div className="w-full max-w-md p-8 sm:p-10 rounded-3xl bg-gray-50/60 backdrop-blur-2xl border border-gray-200/80 shadow-2xl shadow-black/50 my-8">
         
         {/* Header / Brand Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#fc4a56] to-rose-500 text-white shadow-lg shadow-[#fc4a56]/30 mb-4">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-black text-white shadow-lg shadow-black/30 mb-4">
             <MessageSquare size={28} />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
@@ -92,7 +90,7 @@ const LoginPage = () => {
                 type="email"
                 name="email"
                 placeholder="you@example.com"
-                className="w-full pl-11 pr-4 py-3 bg-white/60 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-[#fc4a56] focus:ring-2 focus:ring-[#fc4a56]/20 disabled:opacity-50"
+                className="w-full pl-11 pr-4 py-3 bg-white/60 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-black focus:ring-2 focus:ring-black/20 disabled:opacity-50"
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -111,11 +109,16 @@ const LoginPage = () => {
                 type="password"
                 name="password"
                 placeholder="••••••••"
-                className="w-full pl-11 pr-4 py-3 bg-white/60 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-[#fc4a56] focus:ring-2 focus:ring-[#fc4a56]/20 disabled:opacity-50"
+                className="w-full pl-11 pr-4 py-3 bg-white/60 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-black focus:ring-2 focus:ring-black/20 disabled:opacity-50"
                 value={formData.password}
                 onChange={handleChange}
                 disabled={isLoading}
               />
+            </div>
+            <div className="flex justify-end pt-1">
+              <Link to="/forgot-password" className="text-xs font-semibold text-gray-600 hover:text-black transition-colors">
+                Forgot Password?
+              </Link>
             </div>
           </div>
 
@@ -123,7 +126,7 @@ const LoginPage = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#fc4a56] to-rose-600 hover:from-[#e03e49] hover:to-rose-700 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#fc4a56]/25 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            className="w-full py-3.5 px-4 rounded-xl bg-black hover:bg-gray-900 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-black/25 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
           >
             {isLoading ? (
               <Loader2 className="animate-spin" size={20} />
@@ -177,7 +180,7 @@ const LoginPage = () => {
           Don't have an account?{" "}
           <Link
             to="/signup"
-            className="font-semibold text-[#fc4a56] hover:underline transition-all ml-1"
+            className="font-semibold text-black hover:underline transition-all ml-1"
           >
             Sign Up
           </Link>

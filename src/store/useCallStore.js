@@ -20,6 +20,14 @@ const AUDIO_CONSTRAINTS = {
   channelCount: 1,
 };
 
+// High-quality video constraints
+const VIDEO_CONSTRAINTS = {
+  width: { ideal: 1280, max: 1920 },
+  height: { ideal: 720, max: 1080 },
+  frameRate: { ideal: 30, max: 60 },
+  facingMode: "user",
+};
+
 const useCallStore = create((set, get) => ({
   callState: null, // null | 'calling' | 'ringing' | 'connected'
   callType: null, // 'video' | 'voice'
@@ -51,7 +59,13 @@ const useCallStore = create((set, get) => ({
   setCallState: (state) => set({ callState: state }),
   setCallType: (type) => set({ callType: type }),
   setCallUser: (user) => set({ callUser: user }),
-  setIncomingCall: (call) => set({ incomingCall: call }),
+  // When an incoming call arrives, also mark callState as 'ringing'
+  setIncomingCall: (call) => set({
+    incomingCall: call,
+    callState: call ? "ringing" : null,
+    callType: call ? call.callType : null,
+    callUser: call ? call.fromUser : null,
+  }),
 
   // ─── Initiate an outgoing call ───
   initiateCall: async (otherUser, type) => {
@@ -66,7 +80,7 @@ const useCallStore = create((set, get) => ({
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: type === "video",
+        video: type === "video" ? VIDEO_CONSTRAINTS : false,
         audio: AUDIO_CONSTRAINTS,
       });
     } catch (error) {
@@ -165,7 +179,7 @@ const useCallStore = create((set, get) => ({
       if (callType === "video") {
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
+            video: VIDEO_CONSTRAINTS,
             audio: AUDIO_CONSTRAINTS,
           });
         } catch (e1) {
@@ -404,7 +418,14 @@ const useCallStore = create((set, get) => ({
       const socket = useSocketStore.getState().socket;
       socket?.emit("rejectCall", { to: callData.from });
     }
-    set({ incomingCall: null });
+    // Reset ALL call state so UI goes back to normal
+    set({
+      incomingCall: null,
+      callState: null,
+      callType: null,
+      callUser: null,
+      iceCandidatesQueue: [],
+    });
   },
 
   // ─── End the call (initiated by this user) ───

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { MessageSquare, Users, Settings, Search, Plus, UserPlus, UsersRound, X, Loader2, LogOut } from "lucide-react";
+import { MessageSquare, Users, Settings, Search, Plus, UserPlus, UsersRound, X, Loader2, LogOut, Bell } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import useChatStore from "../../store/useChatStore";
 import useSocketStore from "../../store/useSocketStore";
@@ -8,14 +8,19 @@ import Avatar from "../../components/Avatar";
 import axios from "../../lib/axios";
 import { toast } from "react-hot-toast";
 
+import NotificationDropdown from "../../components/NotificationDropdown";
+import useNotificationStore from "../../store/useNotificationStore";
+
 const ChatSidebar = () => {
   const { conversations, activeConversation, setActiveConversation, fetchConversations, markMessagesRead } = useChatStore();
   const { user, logout } = useAuthStore();
+  const { unreadCount, fetchNotifications } = useNotificationStore();
   const location = useLocation();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupFriends, setGroupFriends] = useState([]);
   const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
@@ -30,7 +35,8 @@ const ChatSidebar = () => {
   useEffect(() => {
     fetchConversations();
     fetchStatuses();
-  }, [fetchConversations]);
+    fetchNotifications();
+  }, [fetchConversations, fetchNotifications]);
 
   const fetchStatuses = async () => {
     try {
@@ -183,12 +189,26 @@ const ChatSidebar = () => {
     <aside className="w-full md:w-[380px] flex flex-col border-r border-gray-200/80 bg-white/95 relative h-full shrink-0 select-none">
       {/* Header Section */}
       <div className="p-5 sm:p-6 pb-4">
-        <div className="flex justify-between items-center mb-5">
+        <div className="flex justify-between items-center mb-5 relative">
           <div className="flex items-center gap-3">
             <Avatar user={user} size="lg" showStatus={false} />
             <h2 className="text-2xl font-bold tracking-tight text-gray-900">Chats</h2>
           </div>
           <div className="flex items-center gap-2">
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                aria-label="Notifications"
+                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition-all duration-200 active:scale-95 relative"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full ring-2 ring-white"></span>
+                )}
+              </button>
+              <NotificationDropdown isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            </div>
+
             <button
               onClick={openGroupModal}
               aria-label="Create group"
@@ -199,7 +219,7 @@ const ChatSidebar = () => {
             <Link
               to="/search"
               aria-label="Find new friends"
-              className="w-10 h-10 rounded-full bg-[#fc4a56] hover:bg-[#e03e49] text-white flex items-center justify-center transition-all duration-200 active:scale-95 shadow-md shadow-[#fc4a56]/20"
+              className="w-10 h-10 rounded-full bg-black hover:bg-gray-800 text-white flex items-center justify-center transition-all duration-200 active:scale-95 shadow-md shadow-black/20"
             >
               <Plus size={22} />
             </Link>
@@ -217,7 +237,7 @@ const ChatSidebar = () => {
                   onClick={() => openStatusViewer(group)}
                   className="flex flex-col items-center gap-1 shrink-0"
                 >
-                  <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-[#fc4a56] to-[#ff7b84]">
+                  <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-gray-700 to-black">
                     <img
                       src={group.user.profileImage || `https://ui-avatars.com/api/?name=${group.user.username}`}
                       alt=""
@@ -234,7 +254,7 @@ const ChatSidebar = () => {
         )}
         
         {/* Search Bar */}
-        <div className="relative h-11 rounded-full flex items-center px-4 bg-gray-50/80 border border-gray-200 focus-within:border-[#fc4a56] transition-all duration-200 shadow-inner">
+        <div className="relative h-11 rounded-full flex items-center px-4 bg-gray-50/80 border border-gray-200 focus-within:border-black transition-all duration-200 shadow-inner">
           <Search size={18} className="text-gray-500 shrink-0" />
           <input 
             type="text" 
@@ -258,7 +278,7 @@ const ChatSidebar = () => {
             </p>
             <Link 
               to="/search" 
-              className="mt-2 text-sm font-semibold text-[#fc4a56] hover:underline"
+              className="mt-2 text-sm font-semibold text-black hover:underline"
             >
               Find friends to start chatting
             </Link>
@@ -283,7 +303,7 @@ const ChatSidebar = () => {
                 {/* Avatar */}
                 <div className="relative shrink-0 mr-3.5">
                   {isGroup ? (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#fc4a56] to-[#ff7b84] flex items-center justify-center text-white shadow-md">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white shadow-md">
                       <UsersRound size={20} />
                     </div>
                   ) : (
@@ -312,12 +332,12 @@ const ChatSidebar = () => {
                 {/* Date & Unread */}
                 <div className="flex flex-col items-end gap-1.5 ml-3 shrink-0">
                   <span className={`text-[11px] font-medium tracking-tight ${
-                    hasUnread ? 'text-[#fc4a56]' : 'text-gray-400'
+                    hasUnread ? 'text-black' : 'text-gray-400'
                   }`}>
                     {formatTime(conversation.updatedAt)}
                   </span>
                   {hasUnread && (
-                    <span className="bg-[#fc4a56] text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm shadow-[#fc4a56]/30">
+                    <span className="bg-black text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm shadow-black/30">
                       {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
                     </span>
                   )}
@@ -335,7 +355,7 @@ const ChatSidebar = () => {
           aria-label="Chats"
           className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
             location.pathname === '/chat' 
-              ? 'bg-[#fc4a56]/15 text-[#fc4a56]' 
+              ? 'bg-black text-white shadow-md shadow-black/20' 
               : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/50'
           }`}
         >
@@ -346,7 +366,7 @@ const ChatSidebar = () => {
           aria-label="Search Friends"
           className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
             location.pathname === '/search' 
-              ? 'bg-[#fc4a56]/15 text-[#fc4a56]' 
+              ? 'bg-black text-white shadow-md shadow-black/20' 
               : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/50'
           }`}
         >
@@ -357,7 +377,7 @@ const ChatSidebar = () => {
           aria-label="Friend Requests"
           className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
             location.pathname === '/requests' 
-              ? 'bg-[#fc4a56]/15 text-[#fc4a56]' 
+              ? 'bg-black text-white shadow-md shadow-black/20' 
               : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/50'
           }`}
         >
@@ -368,7 +388,7 @@ const ChatSidebar = () => {
           aria-label="Settings"
           className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
             location.pathname.startsWith('/profile') 
-              ? 'bg-[#fc4a56]/15 text-[#fc4a56]' 
+              ? 'bg-black text-white shadow-md shadow-black/20' 
               : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/50'
           }`}
         >
@@ -408,7 +428,7 @@ const ChatSidebar = () => {
                 placeholder="Group name..."
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#fc4a56]/20 focus:border-[#fc4a56] outline-none"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-black/20 focus:border-black outline-none"
               />
 
               <div>
@@ -420,7 +440,7 @@ const ChatSidebar = () => {
                       onClick={() => toggleMember(friend._id)}
                       className={`w-full flex items-center gap-3 p-2.5 rounded-xl transition-all text-left ${
                         selectedGroupMembers.includes(friend._id)
-                          ? 'bg-[#fc4a56]/10 border border-[#fc4a56]/30'
+                          ? 'bg-gray-100 border border-gray-300'
                           : 'hover:bg-gray-50 border border-transparent'
                       }`}
                     >
@@ -433,7 +453,7 @@ const ChatSidebar = () => {
                         <p className="text-xs text-gray-500">@{friend.username}</p>
                       </div>
                       {selectedGroupMembers.includes(friend._id) && (
-                        <div className="w-5 h-5 rounded-full bg-[#fc4a56] flex items-center justify-center">
+                        <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center">
                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>

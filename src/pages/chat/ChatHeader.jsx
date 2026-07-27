@@ -81,9 +81,13 @@ const ChatHeader = () => {
 
         <div className="min-w-0 flex-1">
           <h3 className="text-sm sm:text-base font-semibold text-gray-900 truncate leading-snug">
-            {otherUser?.fullName || "Chat Partner"}
+            {activeConversation.isGroup ? activeConversation.groupName : (otherUser?.fullName || "Chat Partner")}
           </h3>
-          {isTyping ? (
+          {activeConversation.isGroup ? (
+            <p className="text-xs text-gray-500">
+              {activeConversation.participants.length} members
+            </p>
+          ) : isTyping ? (
             <p className="text-xs font-medium text-black animate-pulse">
               typing...
             </p>
@@ -101,23 +105,27 @@ const ChatHeader = () => {
 
       {/* Right Area */}
       <div className="flex items-center gap-1.5 sm:gap-2">
-        <button
-          type="button"
-          onClick={() => startCall("voice")}
-          aria-label="Start voice call"
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-gray-50 border border-gray-200 hover:bg-black hover:text-white hover:border-black text-gray-700 transition-all duration-200 active:scale-95"
-        >
-          <Phone size={17} />
-        </button>
+        {!activeConversation.isGroup && (
+          <>
+            <button
+              type="button"
+              onClick={() => startCall("voice")}
+              aria-label="Start voice call"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-gray-50 border border-gray-200 hover:bg-black hover:text-white hover:border-black text-gray-700 transition-all duration-200 active:scale-95"
+            >
+              <Phone size={17} />
+            </button>
 
-        <button
-          type="button"
-          onClick={() => startCall("video")}
-          aria-label="Start video call"
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-gray-50 border border-gray-200 hover:bg-black hover:text-white hover:border-black text-gray-700 transition-all duration-200 active:scale-95"
-        >
-          <Video size={18} />
-        </button>
+            <button
+              type="button"
+              onClick={() => startCall("video")}
+              aria-label="Start video call"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-gray-50 border border-gray-200 hover:bg-black hover:text-white hover:border-black text-gray-700 transition-all duration-200 active:scale-95"
+            >
+              <Video size={18} />
+            </button>
+          </>
+        )}
 
         {/* More Options */}
         <div className="relative" ref={menuRef}>

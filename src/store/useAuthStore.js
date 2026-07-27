@@ -115,6 +115,10 @@ const useAuthStore = create((set, get) => ({
   // ─── Login ───────────────────────────────────
   login: async (formData) => {
     const res = await axios.post("/api/auth/login", formData);
+    if (res.data.success && res.data.data?.token) {
+      const { user, token } = res.data.data;
+      get().setAuth(user, token);
+    }
     return res.data;
   },
 
@@ -131,6 +135,18 @@ const useAuthStore = create((set, get) => ({
   // ─── Resend OTP ──────────────────────────────
   resendOtp: async (email, type) => {
     const res = await axios.post("/api/auth/resend-otp", { email, type });
+    return res.data;
+  },
+
+  // ─── Forgot Password ─────────────────────────
+  forgotPassword: async (email) => {
+    const res = await axios.post("/api/auth/forgot-password", { email });
+    return res.data;
+  },
+
+  // ─── Reset Password ──────────────────────────
+  resetPassword: async (email, otp, newPassword) => {
+    const res = await axios.post("/api/auth/reset-password", { email, otp, newPassword });
     return res.data;
   },
 

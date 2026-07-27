@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import ReactDOM from "react-dom";
 import { Phone, PhoneOff, Video, ShieldCheck } from "lucide-react";
 import useCallStore from "../store/useCallStore";
 import Avatar from "./Avatar";
@@ -8,7 +9,7 @@ const IncomingCallModal = () => {
   const incomingCall = useCallStore((state) => state.incomingCall);
   const answerCall = useCallStore((state) => state.answerCall);
   const rejectCall = useCallStore((state) => state.rejectCall);
-  
+
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -37,16 +38,17 @@ const IncomingCallModal = () => {
     if (incomingCall) rejectCall(incomingCall);
   };
 
-  if (!incomingCall) {
-    return <div className="hidden"></div>;
-  }
+  if (!incomingCall) return null;
 
-  return (
-    <div 
-      className="fixed inset-0 flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-gray-950 to-black text-white select-none"
-      style={{ zIndex: 999999 }}
+  // Use portal to render at document.body level — bypasses all z-index stacking contexts
+  return ReactDOM.createPortal(
+    <div
+      className="fixed inset-0 flex flex-col items-center justify-between text-white select-none"
+      style={{
+        zIndex: 2147483647, // max possible z-index
+        background: "linear-gradient(to bottom, #111827, #030712, #000000)",
+      }}
     >
-      
       {/* Top Section */}
       <div className="flex flex-col items-center pt-16 sm:pt-20">
         <div className="flex items-center gap-2 mb-2">
@@ -60,15 +62,24 @@ const IncomingCallModal = () => {
         </p>
       </div>
 
-      {/* Center - Caller Info with Animated Ripples */}
+      {/* Center - Caller Info */}
       <div className="flex flex-col items-center justify-center flex-1">
         <div className="relative flex items-center justify-center mb-8">
           {/* Animated ripple rings */}
-          <div className="absolute w-40 h-40 rounded-full border border-white/10 animate-ping" style={{ animationDuration: "2s" }} />
-          <div className="absolute w-52 h-52 rounded-full border border-white/5 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "0.3s" }} />
-          <div className="absolute w-64 h-64 rounded-full border border-white/[0.03] animate-ping" style={{ animationDuration: "3s", animationDelay: "0.6s" }} />
-          
-          {/* Avatar with glow */}
+          <div
+            className="absolute w-40 h-40 rounded-full border border-white/10 animate-ping"
+            style={{ animationDuration: "2s" }}
+          />
+          <div
+            className="absolute w-52 h-52 rounded-full border border-white/5 animate-ping"
+            style={{ animationDuration: "2.5s", animationDelay: "0.3s" }}
+          />
+          <div
+            className="absolute w-64 h-64 rounded-full border border-white/[0.03] animate-ping"
+            style={{ animationDuration: "3s", animationDelay: "0.6s" }}
+          />
+
+          {/* Avatar */}
           <div className="relative z-10">
             <div className="rounded-full p-1 bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-2xl shadow-emerald-500/20">
               <div className="rounded-full p-0.5 bg-gray-900">
@@ -78,19 +89,19 @@ const IncomingCallModal = () => {
           </div>
         </div>
 
-        {/* Caller Name */}
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
           {fromUser?.fullName || "Unknown"}
         </h2>
-        <p className="text-gray-400 text-sm">
+        <p className="text-gray-400 text-sm animate-pulse">
           BuddyChat {callType === "video" ? "Video" : "Voice"} Call
+          {elapsed > 0 && ` · ${elapsed}s`}
         </p>
       </div>
 
-      {/* Bottom - Action Buttons (WhatsApp style circular) */}
+      {/* Bottom - Action Buttons */}
       <div className="pb-12 sm:pb-16 w-full max-w-sm mx-auto px-8">
         <div className="flex items-center justify-between">
-          {/* Decline Button */}
+          {/* Decline */}
           <div className="flex flex-col items-center gap-3">
             <button
               onClick={handleReject}
@@ -101,7 +112,7 @@ const IncomingCallModal = () => {
             <span className="text-xs text-gray-400 font-medium">Decline</span>
           </div>
 
-          {/* Accept Button */}
+          {/* Accept */}
           <div className="flex flex-col items-center gap-3">
             <button
               onClick={handleAccept}
@@ -117,7 +128,8 @@ const IncomingCallModal = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

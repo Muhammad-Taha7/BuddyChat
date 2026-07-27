@@ -10,23 +10,35 @@ const useSocketStore = create((set, get) => ({
 
   // Connect to socket
   connect: (token) => {
-    if (get().socket?.connected) return;
+    const existing = get().socket;
+    // If socket already exists (even if disconnected due to reconnection), don't create a new one
+    if (existing) return;
 
     const socket = io(SOCKET_URL, {
       auth: { token },
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
 
     socket.on("connect", () => {
-      console.log("🟢 Socket connected");
+      console.log("🟢 Socket connected:", socket.id);
       set({ isConnected: true });
     });
 
-    socket.on("disconnect", () => {
-      console.log("🔴 Socket disconnected");
+    socket.on("reconnect", (attempt) => {
+      console.log(`🔁 Socket reconnected after ${attempt} attempt(s)`);
+      set({ isConnected: true });
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("🔴 Socket disconnected:", reason);
       set({ isConnected: false });
+    });
+
+    socket.on("connect_error", (err) => {
+      console.warn("⚠️ Socket connection error:", err.message);
     });
 
     socket.on("onlineUsers", (users) => {

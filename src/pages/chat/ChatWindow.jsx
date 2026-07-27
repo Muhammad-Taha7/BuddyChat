@@ -89,7 +89,7 @@ const ChatWindow = () => {
   if (!activeConversation) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white animate-fadeIn">
-        <div className="w-20 h-20 rounded-3xl bg-gray-50/80 border border-gray-200 flex items-center justify-center text-[#fc4a56] mb-5 shadow-xl">
+        <div className="w-20 h-20 rounded-3xl bg-gray-50/80 border border-gray-200 flex items-center justify-center text-black mb-5 shadow-xl">
           <MessageSquare size={36} />
         </div>
         <h3 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">
@@ -105,7 +105,7 @@ const ChatWindow = () => {
   if (isLoadingMessages) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white">
-        <Loader2 className="w-10 h-10 text-[#fc4a56] animate-spin" />
+        <Loader2 className="w-10 h-10 text-black animate-spin" />
       </div>
     );
   }
@@ -178,7 +178,7 @@ const ChatWindow = () => {
             >
               <div
                 className={`p-2.5 rounded-lg shrink-0 ${
-                  isMine ? "bg-white/20 text-gray-900" : "bg-[#fc4a56]/20 text-[#fc4a56]"
+                  isMine ? "bg-white/20 text-gray-900" : "bg-black/10 text-black"
                 }`}
               >
                 <FileText size={22} />
@@ -211,8 +211,8 @@ const ChatWindow = () => {
               aria-label={isPlaying ? "Pause voice note" : "Play voice note"}
               className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-md ${
                 isMine
-                  ? "bg-white text-[#fc4a56]"
-                  : "bg-[#fc4a56] text-white hover:bg-[#e03e49]"
+                  ? "bg-white text-black"
+                  : "bg-black text-white hover:bg-gray-800"
               }`}
             >
               {isPlaying ? <Pause size={18} /> : <Play size={18} className="translate-x-[1px]" />}
@@ -270,10 +270,15 @@ const ChatWindow = () => {
                 onContextMenu={(e) => handleContextMenu(e, message)}
                 className={`max-w-[82%] sm:max-w-[70%] px-4 py-3 relative flex flex-col shadow-md transition-all duration-200 group/msg ${
                   isMine
-                    ? "self-end rounded-2xl rounded-br-xs bg-[#fc4a56] text-white"
+                    ? "self-end rounded-2xl rounded-br-xs bg-black text-white"
                     : "self-start rounded-2xl rounded-bl-xs bg-gray-50/80 text-gray-900 border border-gray-200"
                 }`}
               >
+                {!isMine && activeConversation?.isGroup && (
+                  <span className="text-xs font-semibold text-gray-500 mb-1 ml-1 block">
+                    {message.sender?.fullName || message.sender?.username || "User"}
+                  </span>
+                )}
                 {renderMessageContent(message, isMine)}
 
                 {/* Message Timestamp + Delete hint */}

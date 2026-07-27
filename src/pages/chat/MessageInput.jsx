@@ -160,7 +160,7 @@ const MessageInput = () => {
         setIsUploading(true);
         try {
           const formData = new FormData();
-          formData.append("voiceMessage", audioBlob, "voice-message.webm");
+          formData.append("chatFile", audioBlob, "voice-message.webm");
 
           const res = await axios.post("/api/chat/upload", formData, {
             headers: { "Content-Type": "multipart/form-data" },

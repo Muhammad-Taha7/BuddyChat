@@ -17,6 +17,8 @@ import IncomingCallModal from "./components/IncomingCallModal";
 import LoginPage from "./pages/auth/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
 import OtpVerifyPage from "./pages/auth/OtpVerifyPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import ProfileSetupPage from "./pages/profile/ProfileSetupPage";
 
 // Call Pages
@@ -65,9 +67,15 @@ export const App = () => {
     const handleIncomingCall = (call) => {
       console.log("[Socket] incomingCall received:", call);
       useCallStore.getState().setIncomingCall(call);
+      // Backup visual cue in case portal modal has any rendering delay
+      toast(
+        `📞 Incoming ${call.callType === "video" ? "video" : "voice"} call from ${call.fromUser?.fullName || "Someone"}`,
+        { duration: 30000, id: "incoming-call-toast" }
+      );
     };
 
     const handleCallAnswered = ({ answer }) => {
+      toast.dismiss("incoming-call-toast");
       useCallStore.getState().handleAnswer(answer);
     };
 
@@ -76,16 +84,19 @@ export const App = () => {
     };
 
     const handleCallEnded = () => {
+      toast.dismiss("incoming-call-toast");
       useCallStore.getState().receiveCallEnded();
       toast("Call ended", { icon: "📞" });
     };
 
     const handleCallRejected = () => {
+      toast.dismiss("incoming-call-toast");
       useCallStore.getState().receiveCallEnded();
       toast.error("Call declined");
     };
 
     const handleCallFailed = ({ message }) => {
+      toast.dismiss("incoming-call-toast");
       useCallStore.getState().receiveCallEnded();
       toast.error(message || "User is offline or unavailable");
     };
@@ -141,6 +152,8 @@ export const App = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/verify-otp" element={<OtpVerifyPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
@@ -182,7 +195,7 @@ export const App = () => {
         {/* Incoming call overlay — shown when someone calls you */}
         <IncomingCallModal />
 
-        {/* Active call pages — only when you are the caller or call is connected */}
+        {/* Active call pages — shown for caller ("calling") and both sides when connected */}
         {(callState === "calling" || callState === "connected") && (
           callType === "video" ? <VideoCallPage /> : <VoiceCallPage />
         )}
