@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create an Axios instance with base URL and credentials
 const axiosInstance = axios.create({
-  baseURL: "https://buddy-chat-backend-gzby.vercel.app/",
+  baseURL: "import.meta.env.VITE_API_URL",
   withCredentials: true,
 });
 
