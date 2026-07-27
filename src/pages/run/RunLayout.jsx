@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, MessageSquare, LogOut, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, Users, MessageSquare, LogOut, ShieldAlert, Settings } from "lucide-react";
 import toast from "react-hot-toast";
 
 const RunLayout = () => {
@@ -8,6 +8,7 @@ const RunLayout = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("buddychat_admin_auth");
+    localStorage.removeItem("buddychat_admin_token");
     toast.success("Admin logged out");
     navigate("/run");
   };
@@ -16,6 +17,7 @@ const RunLayout = () => {
     { name: "Dashboard", path: "/run/Dashboard", icon: LayoutDashboard },
     { name: "Users", path: "/run/Users", icon: Users },
     { name: "Messages", path: "/run/Messages", icon: MessageSquare },
+    { name: "Settings", path: "/run/Settings", icon: Settings },
   ];
 
   return (

@@ -11,6 +11,7 @@ const RunUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   // User detail modal
   const [selectedUser, setSelectedUser] = useState(null);
@@ -26,7 +27,8 @@ const RunUsers = () => {
       const res = await axiosInstance.get("/api/admin/users");
       setUsers(res.data.data.users);
     } catch (error) {
-      console.error(error);
+      console.error("Failed to fetch users:", error);
+      setErrorMsg(error.response?.data?.message || error.message || "Unknown error");
     } finally {
       setLoading(false);
     }

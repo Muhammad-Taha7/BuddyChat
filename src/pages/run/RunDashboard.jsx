@@ -50,6 +50,7 @@ const RunDashboard = () => {
   const [stats, setStats] = useState(null);
   const [charts, setCharts] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -59,6 +60,7 @@ const RunDashboard = () => {
         setCharts(res.data.data.charts);
       } catch (error) {
         console.error("Stats fetch error", error);
+        setErrorMsg(error.response?.data?.message || error.message || "Unknown error");
         setStats({
           totalUsers: 0, verifiedUsers: 0, onlineUsers: 0,
           totalMessages: 0, messagesToday: 0, totalConversations: 0,
@@ -76,6 +78,16 @@ const RunDashboard = () => {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <p className="text-red-500 font-bold mb-4">Error loading stats:</p>
+        <pre className="bg-red-50 p-4 text-red-800 rounded-lg">{errorMsg}</pre>
+        <p className="mt-4 text-sm">Token: {localStorage.getItem("buddychat_admin_token") ? "Exists" : "Missing"}</p>
       </div>
     );
   }

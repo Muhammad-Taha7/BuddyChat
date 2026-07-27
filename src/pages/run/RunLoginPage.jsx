@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, User, KeyRound } from "lucide-react";
 import toast from "react-hot-toast";
+import axiosInstance from "../../lib/axios";
 
 const RunLoginPage = () => {
   const navigate = useNavigate();
@@ -11,21 +12,27 @@ const RunLoginPage = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Hardcoded raw authentication for admin portal
-    setTimeout(() => {
-      if (formData.username === "taha" && formData.password === "password.11") {
+    try {
+      const res = await axiosInstance.post("/api/system-admin/login", {
+        username: formData.username,
+        password: formData.password,
+      });
+
+      if (res.data.success) {
         localStorage.setItem("buddychat_admin_auth", "true");
+        localStorage.setItem("buddychat_admin_token", res.data.token);
         toast.success("Welcome back, Admin");
         navigate("/run/Dashboard");
-      } else {
-        toast.error("Invalid admin credentials");
-        setIsLoading(false);
       }
-    }, 1000);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Invalid admin credentials");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

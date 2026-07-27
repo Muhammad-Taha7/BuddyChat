@@ -9,7 +9,11 @@ const axiosInstance = axios.create({
 // Request interceptor to add token from localStorage if available
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const isAdminPortal = window.location.pathname.startsWith("/run");
+    const token = isAdminPortal 
+      ? (localStorage.getItem("buddychat_admin_token") || localStorage.getItem("token"))
+      : (localStorage.getItem("token") || localStorage.getItem("buddychat_admin_token"));
+      
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

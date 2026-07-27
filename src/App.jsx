@@ -42,6 +42,7 @@ import RunLayout from "./pages/run/RunLayout";
 import RunDashboard from "./pages/run/RunDashboard";
 import RunUsers from "./pages/run/RunUsers";
 import RunMessages from "./pages/run/RunMessages";
+import RunSettings from "./pages/run/RunSettings";
 
 export const App = () => {
   const { user, token, checkAuth } = useAuthStore();
@@ -185,6 +186,7 @@ export const App = () => {
               <Route path="Dashboard" element={<RunDashboard />} />
               <Route path="Users" element={<RunUsers />} />
               <Route path="Messages" element={<RunMessages />} />
+              <Route path="Settings" element={<RunSettings />} />
             </Route>
           </Route>
 
