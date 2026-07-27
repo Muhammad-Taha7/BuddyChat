@@ -21,6 +21,7 @@ const MessageInput = () => {
   const typingTimeoutRef = useRef(null);
   const timerIntervalRef = useRef(null);
   const isCancelledRef = useRef(false);
+  const emojiPickerRef = useRef(null);
 
   const { activeConversation } = useChatStore();
   const { user } = useAuthStore();
@@ -30,14 +31,35 @@ const MessageInput = () => {
     activeConversation?.participants?.find((p) => p._id !== user?._id) ||
     activeConversation?.participants?.[0];
 
+  // Reset input when switching conversations
+  useEffect(() => {
+    setMessage("");
+    setShowEmojiPicker(false);
+    if (isRecording) {
+      cancelRecording();
+    }
+  }, [activeConversation?._id]);
+
+  // Click outside to close emoji picker
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showEmojiPicker]);
+
+  // Cleanup timers & recordings on unmount
   useEffect(() => {
     return () => {
       clearTimeout(typingTimeoutRef.current);
       clearInterval(timerIntervalRef.current);
-      if (
-        mediaRecorderRef.current &&
-        mediaRecorderRef.current.state !== "inactive"
-      ) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
       }
     };
@@ -52,14 +74,22 @@ const MessageInput = () => {
 
     if (!isTyping && socket && otherUser) {
       setIsTyping(true);
-      socket.emit("typing", { receiverId: otherUser._id, isTyping: true });
+      socket.emit("typing", {
+        conversationId: activeConversation._id,
+        receiverId: otherUser._id,
+        isTyping: true,
+      });
     }
 
     clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
       if (socket && otherUser) {
-        socket.emit("typing", { receiverId: otherUser._id, isTyping: false });
+        socket.emit("typing", {
+          conversationId: activeConversation._id,
+          receiverId: otherUser._id,
+          isTyping: false,
+        });
       }
     }, 2000);
   };
@@ -70,11 +100,10 @@ const MessageInput = () => {
 
     try {
       const payload = {
+        conversationId: activeConversation._id,
         receiverId: otherUser._id,
-        content: message,
+        content: message.trim(),
         type: "text",
-        iv: "placeholder_iv",
-        encryptedKey: "placeholder_key",
       };
 
       socket.emit("sendMessage", payload);
@@ -82,7 +111,11 @@ const MessageInput = () => {
       setShowEmojiPicker(false);
 
       setIsTyping(false);
-      socket.emit("typing", { receiverId: otherUser._id, isTyping: false });
+      socket.emit("typing", {
+        conversationId: activeConversation._id,
+        receiverId: otherUser._id,
+        isTyping: false,
+      });
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
@@ -111,6 +144,7 @@ const MessageInput = () => {
         const type = mimeType?.startsWith("image/") ? "image" : "file";
 
         socket.emit("sendMessage", {
+          conversationId: activeConversation._id,
           receiverId: otherUser._id,
           content: "Sent a file",
           type,
@@ -168,6 +202,7 @@ const MessageInput = () => {
 
           if (res.data.success) {
             socket.emit("sendMessage", {
+              conversationId: activeConversation._id,
               receiverId: otherUser._id,
               content: "Voice Message",
               type: "voice",
@@ -222,7 +257,7 @@ const MessageInput = () => {
   if (!activeConversation) return null;
 
   return (
-    <div className="p-4 sm:p-6 bg-white/95 backdrop-blur-md border-t border-gray-200/80">
+    <div className="p-4 sm:p-6 bg-white/95 backdrop-blur-md border-t border-gray-200">
       <input
         type="file"
         ref={fileInputRef}
@@ -231,8 +266,8 @@ const MessageInput = () => {
       />
 
       {isRecording ? (
-        /* Recording UI Bar */
-        <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border border-[#fc4a56]/50 rounded-full shadow-lg animate-fadeIn">
+        /* Recording Bar */
+        <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border border-rose-200 rounded-full shadow-md animate-fadeIn">
           <div className="flex items-center gap-3">
             <span className="w-3 h-3 rounded-full bg-rose-500 animate-pulse" />
             <span className="text-sm font-medium text-gray-800 font-mono tracking-wide">
@@ -245,7 +280,7 @@ const MessageInput = () => {
               type="button"
               onClick={cancelRecording}
               aria-label="Cancel recording"
-              className="p-2 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-full transition-colors duration-200"
+              className="p-2 text-gray-500 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
             >
               <X size={20} />
             </button>
@@ -253,32 +288,32 @@ const MessageInput = () => {
               type="button"
               onClick={stopRecording}
               aria-label="Send recording"
-              className="p-2.5 bg-[#fc4a56] text-white hover:bg-[#e03e49] rounded-full transition-all duration-200 shadow-md shadow-[#fc4a56]/20 active:scale-95"
+              className="p-2.5 bg-rose-500 text-white hover:bg-rose-600 rounded-full transition-all shadow-md active:scale-95"
             >
               <Send size={18} className="translate-x-[1px]" />
             </button>
           </div>
         </div>
       ) : (
-        /* Standard Message Input Bar */
+        /* Message Input Bar */
         <form
           onSubmit={handleSendMessage}
-          className="flex items-center gap-3 max-w-5xl mx-auto"
+          className="flex items-center gap-3 max-w-5xl mx-auto relative"
         >
-          <div className="flex-1 flex items-center gap-1 sm:gap-2 px-4 py-2 bg-gray-50/80 border border-gray-200 focus-within:border-[#fc4a56] rounded-full transition-all duration-200 shadow-inner">
+          <div className="flex-1 flex items-center gap-1 sm:gap-2 px-4 py-2 bg-gray-50 border border-gray-200 focus-within:border-gray-400 focus-within:bg-white rounded-full transition-all shadow-xs">
             {/* Emoji Button */}
-            <div className="relative flex items-center">
+            <div className="relative flex items-center" ref={emojiPickerRef}>
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker((prev) => !prev)}
                 aria-label="Emoji picker"
-                className="p-1.5 text-gray-500 hover:text-[#fc4a56] hover:bg-gray-100 rounded-full transition-colors duration-200 shrink-0"
+                className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200/60 rounded-full transition-colors shrink-0"
               >
                 <Smile size={20} />
               </button>
 
               {showEmojiPicker && (
-                <div className="absolute bottom-12 left-0 z-50 shadow-xl rounded-lg">
+                <div className="absolute bottom-12 left-0 z-50 shadow-2xl rounded-2xl overflow-hidden">
                   <EmojiPicker onEmojiClick={onEmojiClick} theme="light" />
                 </div>
               )}
@@ -291,16 +326,16 @@ const MessageInput = () => {
               value={message}
               onChange={handleTyping}
               disabled={isUploading}
-              className="flex-1 bg-transparent border-none text-gray-900 placeholder-slate-500 text-sm sm:text-base outline-none px-2 py-1 disabled:opacity-50"
+              className="flex-1 bg-transparent border-none text-gray-900 placeholder-gray-400 text-sm sm:text-base outline-none px-2 py-1 disabled:opacity-50"
             />
 
-            {/* Attachment Actions */}
+            {/* Attachments */}
             <button
               type="button"
               onClick={() => openFilePicker("")}
               disabled={isUploading}
               aria-label="Attach file"
-              className="p-1.5 text-gray-500 hover:text-[#fc4a56] hover:bg-gray-100 rounded-full transition-colors duration-200 shrink-0 disabled:opacity-50"
+              className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200/60 rounded-full transition-colors shrink-0 disabled:opacity-50"
             >
               <Paperclip size={20} />
             </button>
@@ -310,7 +345,7 @@ const MessageInput = () => {
               onClick={() => openFilePicker("image/*")}
               disabled={isUploading}
               aria-label="Attach photo"
-              className="p-1.5 text-gray-500 hover:text-[#fc4a56] hover:bg-gray-100 rounded-full transition-colors duration-200 shrink-0 disabled:opacity-50"
+              className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200/60 rounded-full transition-colors shrink-0 disabled:opacity-50"
             >
               <Camera size={20} />
             </button>
@@ -322,14 +357,14 @@ const MessageInput = () => {
             onClick={!message.trim() ? startRecording : undefined}
             disabled={isUploading}
             aria-label={message.trim() ? "Send message" : "Record voice message"}
-            className="w-12 h-12 rounded-full bg-[#fc4a56] hover:bg-[#e03e49] text-gray-900 flex items-center justify-center shrink-0 transition-all duration-200 active:scale-95 shadow-md shadow-[#fc4a56]/25 disabled:opacity-50"
+            className="w-11 h-11 rounded-full bg-black text-white hover:bg-gray-800 flex items-center justify-center shrink-0 transition-all active:scale-95 shadow-md disabled:opacity-50"
           >
             {isUploading ? (
-              <Loader2 size={20} className="animate-spin" />
+              <Loader2 size={18} className="animate-spin" />
             ) : message.trim() ? (
-              <Send size={19} className="-translate-x-[1px]" />
+              <Send size={18} className="-translate-x-[1px]" />
             ) : (
-              <Mic size={20} />
+              <Mic size={19} />
             )}
           </button>
         </form>

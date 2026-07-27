@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { 
   MessageSquare, 
   Users, 
@@ -10,25 +10,197 @@ import {
   Loader2, 
   LogOut, 
   Bell, 
-  UsersRound 
+  UsersRound,
+  CheckCheck
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import useChatStore from "../../store/useChatStore";
 import useSocketStore from "../../store/useSocketStore";
 import useAuthStore from "../../store/useAuthStore";
+import useNotificationStore from "../../store/useNotificationStore";
 import Avatar from "../../components/Avatar";
+import Dialog from "../../components/Dialog";
 import axios from "../../lib/axios";
 import { toast } from "react-hot-toast";
 
-import Dialog from "../../components/Dialog";
-import useNotificationStore from "../../store/useNotificationStore";
+// --- Sub-component: Status Viewer Modal ---
+const StatusViewerModal = ({ group, activeIndex, setActiveIndex, onClose, onLike }) => {
+  if (!group || !group.statuses || group.statuses.length === 0) return null;
 
+  const currentStatus = group.statuses[activeIndex];
+
+  const handlePrev = (e) => {
+    e.stopPropagation();
+    if (activeIndex > 0) {
+      setActiveIndex(activeIndex - 1);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleNext = (e) => {
+    e.stopPropagation();
+    if (activeIndex < group.statuses.length - 1) {
+      setActiveIndex(activeIndex + 1);
+    } else {
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+      {/* Close Button */}
+      <button
+        onClick={onClose}
+        aria-label="Close Status Viewer"
+        className="absolute top-4 right-4 z-20 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+      >
+        <X size={24} />
+      </button>
+
+      {/* Progress Bars */}
+      <div className="absolute top-4 left-4 right-16 z-20 flex gap-1.5">
+        {group.statuses.map((_, i) => (
+          <div key={i} className="flex-1 h-1 rounded-full bg-white/30 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                i <= activeIndex ? "bg-white w-full" : "w-0"
+              }`}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* User Info Header */}
+      <div className="absolute top-10 left-4 z-20 flex items-center gap-3">
+        <img
+          src={group.user?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.user?.username || "User")}`}
+          alt=""
+          className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
+        />
+        <div>
+          <p className="text-white font-semibold text-sm leading-tight">{group.user?.fullName}</p>
+          <p className="text-white/60 text-xs mt-0.5">
+            {currentStatus?.createdAt 
+              ? new Date(currentStatus.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              : ""}
+          </p>
+        </div>
+      </div>
+
+      {/* Main Status Display */}
+      <div className="max-w-lg w-full px-4 flex flex-col items-center justify-center z-10">
+        {currentStatus?.mediaUrl && (
+          <img
+            src={currentStatus.mediaUrl}
+            alt=""
+            className="w-full max-h-[65vh] object-contain rounded-2xl shadow-2xl"
+          />
+        )}
+        {currentStatus?.text && (
+          <p className="text-white text-center text-lg font-medium mt-4 bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md">
+            {currentStatus.text}
+          </p>
+        )}
+      </div>
+
+      {/* Footer / Reactions */}
+      <div className="absolute bottom-6 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-4 text-white/80 text-xs font-medium bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md pointer-events-auto">
+          <span>👁 {currentStatus?.views?.length || 0} views</span>
+          <span>❤️ {currentStatus?.likes?.length || 0} likes</span>
+        </div>
+        <button
+          onClick={() => onLike(currentStatus?._id)}
+          aria-label="Like Status"
+          className="text-white/90 hover:text-red-500 hover:scale-110 active:scale-95 transition-all text-2xl p-2 bg-black/40 rounded-full backdrop-blur-md pointer-events-auto"
+        >
+          ❤️
+        </button>
+      </div>
+
+      {/* Left/Right Navigation Touch Areas */}
+      <button
+        aria-label="Previous Status"
+        className="absolute left-0 top-0 bottom-0 w-1/3 z-10 focus:outline-none"
+        onClick={handlePrev}
+      />
+      <button
+        aria-label="Next Status"
+        className="absolute right-0 top-0 bottom-0 w-1/3 z-10 focus:outline-none"
+        onClick={handleNext}
+      />
+    </div>
+  );
+};
+
+// --- Sub-component: Notification Item ---
+const NotificationItem = ({ notif, onMarkRead, onClose }) => {
+  const isUnread = !notif.isRead;
+
+  const getTargetRoute = () => {
+    switch (notif.type) {
+      case "friend_request":
+        return "/requests";
+      case "friend_accept":
+      case "missed_call":
+        return "/chat";
+      default:
+        return "#";
+    }
+  };
+
+  return (
+    <div className={`flex items-start gap-3 p-3.5 hover:bg-gray-50 transition-colors ${isUnread ? "bg-blue-50/40" : ""}`}>
+      <div className="shrink-0 w-9 h-9 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden mt-0.5">
+        {notif.sender?.profileImage ? (
+          <img src={notif.sender.profileImage} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <Bell size={16} className="text-gray-400" />
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <Link
+          to={getTargetRoute()}
+          onClick={() => {
+            if (isUnread) onMarkRead(notif._id);
+            onClose();
+          }}
+          className="block focus:outline-none group"
+        >
+          <p className={`text-xs sm:text-sm leading-snug ${isUnread ? "text-gray-900 font-semibold" : "text-gray-600 font-normal"}`}>
+            {notif.content}
+          </p>
+          <p className="text-[10px] text-gray-400 mt-1 font-medium">
+            {new Date(notif.createdAt).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+          </p>
+        </Link>
+      </div>
+
+      {isUnread && (
+        <button
+          onClick={() => onMarkRead(notif._id)}
+          className="shrink-0 w-6 h-6 rounded-full hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-black transition-colors"
+          title="Mark as read"
+        >
+          <div className="w-2 h-2 rounded-full bg-black"></div>
+        </button>
+      )}
+    </div>
+  );
+};
+
+// --- Main Chat Sidebar Component ---
 const ChatSidebar = () => {
   const { conversations, activeConversation, setActiveConversation, fetchConversations, markMessagesRead } = useChatStore();
   const { user, logout } = useAuthStore();
   const { unreadCount, fetchNotifications, markAsRead, markAllAsRead, notifications } = useNotificationStore();
+  const socket = useSocketStore((state) => state.socket);
+
   const location = useLocation();
   const navigate = useNavigate();
+
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
@@ -39,20 +211,21 @@ const ChatSidebar = () => {
   const [activeStatusGroup, setActiveStatusGroup] = useState(null);
   const [activeStatusIndex, setActiveStatusIndex] = useState(0);
 
+  const fetchStatuses = useCallback(async () => {
+    try {
+      const res = await axios.get("/api/status");
+      setStatusGroups(res.data?.data?.statusGroups || []);
+    } catch {
+      // Gracefully handle missing or pending status feature endpoints
+      setStatusGroups([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchConversations();
     fetchStatuses();
     fetchNotifications();
-  }, [fetchConversations, fetchNotifications]);
-
-  const fetchStatuses = async () => {
-    try {
-      const res = await axios.get("/api/status");
-      setStatusGroups(res.data.data.statusGroups || []);
-    } catch (err) {
-      // Status API might not be ready
-    }
-  };
+  }, [fetchConversations, fetchStatuses, fetchNotifications]);
 
   const openStatusViewer = (group) => {
     setActiveStatusGroup(group);
@@ -65,9 +238,8 @@ const ChatSidebar = () => {
     try {
       await axios.post(`/api/status/${statusId}/like`);
       toast.success("Liked status");
-      // Optionally refresh status list
       fetchStatuses();
-    } catch (err) {
+    } catch {
       toast.error("Failed to like status");
     }
   };
@@ -89,9 +261,8 @@ const ChatSidebar = () => {
     if (conversation.unreadCount > 0) {
       markMessagesRead(conversation._id);
       
-      const socket = useSocketStore.getState().socket;
       if (socket) {
-        const otherParticipant = conversation.participants.find(p => p._id !== user._id);
+        const otherParticipant = conversation.participants?.find((p) => p._id !== user?._id);
         if (otherParticipant) {
           socket.emit("messageRead", { 
             conversationId: conversation._id,
@@ -104,7 +275,7 @@ const ChatSidebar = () => {
 
   const getOtherParticipant = (conversation) => {
     if (conversation.isGroup) return null;
-    return conversation.participants.find((p) => p._id !== user._id) || conversation.participants[0];
+    return conversation.participants?.find((p) => p._id !== user?._id) || conversation.participants?.[0];
   };
 
   const getConversationName = (conversation) => {
@@ -119,10 +290,10 @@ const ChatSidebar = () => {
     const now = new Date();
     
     if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
     
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString([], { month: "short", day: "numeric" });
   };
 
   const filteredConversations = conversations.filter((conversation) => {
@@ -139,10 +310,12 @@ const ChatSidebar = () => {
             <Avatar user={user} size="lg" showStatus={false} />
             <h2 className="text-2xl font-bold tracking-tight text-gray-900">Chats</h2>
           </div>
+
           <div className="flex items-center gap-2">
+            {/* Notification Button */}
             <div className="relative">
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={() => setShowNotifications((prev) => !prev)}
                 aria-label="Notifications"
                 className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition-all duration-200 active:scale-95 relative"
               >
@@ -151,10 +324,22 @@ const ChatSidebar = () => {
                   <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full ring-2 ring-white"></span>
                 )}
               </button>
+
               {/* Notification Dialog */}
               {showNotifications && (
                 <Dialog isOpen={showNotifications} onClose={() => setShowNotifications(false)} title="Notifications">
-                  <div className="max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
+                  <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-100">
+                    <span className="text-xs text-gray-500 font-medium">{unreadCount} unread</span>
+                    {unreadCount > 0 && (
+                      <button 
+                        onClick={markAllAsRead} 
+                        className="text-xs font-semibold text-black hover:underline flex items-center gap-1"
+                      >
+                        <CheckCheck size={14} /> Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 divide-y divide-gray-100">
                     {notifications.length === 0 ? (
                       <div className="p-8 text-center flex flex-col items-center justify-center">
                         <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3 text-gray-400">
@@ -163,58 +348,21 @@ const ChatSidebar = () => {
                         <p className="text-sm text-gray-500 font-medium">No notifications yet</p>
                       </div>
                     ) : (
-                      <div className="divide-y divide-gray-100">
-                        {notifications.map((notif) => (
-                          <div
-                            key={notif._id}
-                            className={`flex gap-3 p-4 hover:bg-gray-50 transition-colors ${!notif.isRead ? 'bg-blue-50/30' : ''}`}
-                          >
-                            <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">
-                              {notif.sender?.profileImage ? (
-                                <img src={notif.sender.profileImage} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                              )}
-                            </div>
-                            
-                            <div className="flex-1 min-w-0">
-                              <Link
-                                to={notif.type === "friend_request" ? "/requests" : notif.type === "friend_accept" ? `/chat` : notif.type === "missed_call" ? `/chat` : "#"}
-                                onClick={() => {
-                                  if (!notif.isRead) markAsRead(notif._id);
-                                  setShowNotifications(false);
-                                }}
-                                className="block focus:outline-none"
-                              >
-                                <p className={`text-sm ${!notif.isRead ? 'text-gray-900 font-semibold' : 'text-gray-700 font-medium'}`}>
-                                  {notif.content}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {new Date(notif.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </p>
-                              </Link>
-                            </div>
-                            
-                            {!notif.isRead && (
-                              <button
-                                onClick={() => markAsRead(notif._id)}
-                                className="shrink-0 w-6 h-6 rounded-full hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-black transition-colors"
-                                title="Mark as read"
-                              >
-                                <div className="w-2 h-2 rounded-full bg-black"></div>
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                      notifications.map((notif) => (
+                        <NotificationItem
+                          key={notif._id}
+                          notif={notif}
+                          onMarkRead={markAsRead}
+                          onClose={() => setShowNotifications(false)}
+                        />
+                      ))
                     )}
                   </div>
                 </Dialog>
               )}
             </div>
 
+            {/* Find Friends Button */}
             <Link
               to="/search"
               aria-label="Find new friends"
@@ -230,22 +378,22 @@ const ChatSidebar = () => {
       {statusGroups.length > 0 && (
         <div className="flex gap-3 overflow-x-auto pb-3 mb-3 px-5 scrollbar-none">
           {statusGroups.map((group) => {
-            const isOwn = group.user._id === user._id;
+            const isOwn = group.user?._id === user?._id;
             return (
               <button
-                key={group.user._id}
+                key={group.user?._id}
                 onClick={() => openStatusViewer(group)}
-                className="flex flex-col items-center gap-1 shrink-0"
+                className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none"
               >
-                <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-gray-700 to-black">
+                <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-gray-700 to-black group-hover:scale-105 transition-transform duration-200">
                   <img
-                    src={group.user.profileImage || `https://ui-avatars.com/api/?name=${group.user.username}`}
+                    src={group.user?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.user?.username || "User")}`}
                     alt=""
                     className="w-full h-full rounded-full object-cover border-2 border-white"
                   />
                 </div>
                 <span className="text-[10px] text-gray-600 font-medium max-w-[60px] truncate">
-                  {isOwn ? "You" : group.user.fullName?.split(' ')[0]}
+                  {isOwn ? "You" : group.user?.fullName?.split(" ")[0]}
                 </span>
               </button>
             );
@@ -312,32 +460,32 @@ const ChatSidebar = () => {
                   )}
                 </div>
                 
-                {/* Content */}
+                {/* Content Details */}
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm sm:text-base text-gray-900 truncate mb-0.5">
                     {getConversationName(conversation)}
                   </div>
                   <p className={`text-xs sm:text-sm truncate ${
-                    hasUnread ? 'text-gray-900 font-medium' : 'text-gray-500 font-normal'
+                    hasUnread ? "text-gray-900 font-medium" : "text-gray-500 font-normal"
                   }`}>
-                    {conversation.lastMessage?.type === 'image' && '📷 Image'}
-                    {conversation.lastMessage?.type === 'voice' && '🎤 Voice message'}
-                    {conversation.lastMessage?.type === 'file' && '📎 File'}
-                    {conversation.lastMessage?.type === 'text' && conversation.lastMessage.content}
-                    {!conversation.lastMessage && 'No messages yet'}
+                    {conversation.lastMessage?.type === "image" && "📷 Image"}
+                    {conversation.lastMessage?.type === "voice" && "🎤 Voice message"}
+                    {conversation.lastMessage?.type === "file" && "📎 File"}
+                    {conversation.lastMessage?.type === "text" && conversation.lastMessage.content}
+                    {!conversation.lastMessage && "No messages yet"}
                   </p>
                 </div>
                 
-                {/* Date & Unread */}
+                {/* Date & Unread Counter */}
                 <div className="flex flex-col items-end gap-1.5 ml-3 shrink-0">
                   <span className={`text-[11px] font-medium tracking-tight ${
-                    hasUnread ? 'text-black' : 'text-gray-400'
+                    hasUnread ? "text-black" : "text-gray-400"
                   }`}>
                     {formatTime(conversation.updatedAt)}
                   </span>
                   {hasUnread && (
                     <span className="bg-black text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm shadow-black/30">
-                      {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+                      {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
                     </span>
                   )}
                 </div>
@@ -347,26 +495,26 @@ const ChatSidebar = () => {
         )}
       </div>
 
-      {/* Floating Dock Navbar */}
+      {/* Floating Bottom Dock Navbar */}
       <nav className="absolute bottom-4 left-4 right-4 h-16 rounded-full bg-gray-50/90 border border-gray-200 backdrop-blur-md flex items-center justify-around px-3 shadow-2xl z-20">
         <Link 
           to="/chat" 
           aria-label="Chats"
           className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
-            location.pathname === '/chat' 
-              ? 'bg-black text-white shadow-md shadow-black/20' 
-              : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/50'
+            location.pathname === "/chat" 
+              ? "bg-black text-white shadow-md shadow-black/20" 
+              : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
           }`}
         >
-          <MessageSquare size={20} fill={location.pathname === '/chat' ? 'currentColor' : 'none'} />
+          <MessageSquare size={20} fill={location.pathname === "/chat" ? "currentColor" : "none"} />
         </Link>
         <Link 
           to="/search" 
           aria-label="Search Friends"
           className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
-            location.pathname === '/search' 
-              ? 'bg-black text-white shadow-md shadow-black/20' 
-              : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/50'
+            location.pathname === "/search" 
+              ? "bg-black text-white shadow-md shadow-black/20" 
+              : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
           }`}
         >
           <Search size={20} />
@@ -375,9 +523,9 @@ const ChatSidebar = () => {
           to="/requests" 
           aria-label="Friend Requests"
           className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
-            location.pathname === '/requests' 
-              ? 'bg-black text-white shadow-md shadow-black/20' 
-              : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/50'
+            location.pathname === "/requests" 
+              ? "bg-black text-white shadow-md shadow-black/20" 
+              : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
           }`}
         >
           <Users size={20} />
@@ -386,9 +534,9 @@ const ChatSidebar = () => {
           to={`/profile/${user?._id}`} 
           aria-label="Settings"
           className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
-            location.pathname.startsWith('/profile') 
-              ? 'bg-black text-white shadow-md shadow-black/20' 
-              : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/50'
+            location.pathname.startsWith("/profile") 
+              ? "bg-black text-white shadow-md shadow-black/20" 
+              : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
           }`}
         >
           <Settings size={20} />
@@ -410,91 +558,15 @@ const ChatSidebar = () => {
         </button>
       </nav>
 
-      {/* Status Viewer Modal */}
-      {showStatusViewer && activeStatusGroup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
-          <button
-            onClick={() => setShowStatusViewer(false)}
-            className="absolute top-4 right-4 z-10 text-white/80 hover:text-white"
-          >
-            <X size={28} />
-          </button>
-
-          {/* Progress bars */}
-          <div className="absolute top-4 left-4 right-16 flex gap-1">
-            {activeStatusGroup.statuses.map((_, i) => (
-              <div key={i} className="flex-1 h-0.5 rounded-full bg-white/30 overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-300 ${
-                  i <= activeStatusIndex ? 'bg-white w-full' : 'w-0'
-                }`} />
-              </div>
-            ))}
-          </div>
-
-          {/* User info */}
-          <div className="absolute top-8 left-4 flex items-center gap-3">
-            <img
-              src={activeStatusGroup.user.profileImage || `https://ui-avatars.com/api/?name=${activeStatusGroup.user.username}`}
-              alt=""
-              className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
-            />
-            <div>
-              <p className="text-white font-semibold text-sm">{activeStatusGroup.user.fullName}</p>
-              <p className="text-white/60 text-xs">
-                {new Date(activeStatusGroup.statuses[activeStatusIndex]?.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-          </div>
-
-          {/* Status Content */}
-          <div className="max-w-lg w-full px-4">
-            {activeStatusGroup.statuses[activeStatusIndex]?.mediaUrl && (
-              <img
-                src={activeStatusGroup.statuses[activeStatusIndex].mediaUrl}
-                alt=""
-                className="w-full max-h-[70vh] object-contain rounded-2xl"
-              />
-            )}
-            {activeStatusGroup.statuses[activeStatusIndex]?.text && (
-              <p className="text-white text-center text-lg mt-4">{activeStatusGroup.statuses[activeStatusIndex].text}</p>
-            )}
-          </div>
-
-          {/* Bottom info */}
-          <div className="absolute bottom-6 left-4 right-4 flex items-center justify-between">
-            <div className="flex items-center gap-4 text-white/70 text-xs">
-              <span>👁 {activeStatusGroup.statuses[activeStatusIndex]?.views?.length || 0} views</span>
-              <span>❤️ {activeStatusGroup.statuses[activeStatusIndex]?.likes?.length || 0} likes</span>
-            </div>
-            <button
-              onClick={() => handleLikeStatus(activeStatusGroup.statuses[activeStatusIndex]?._id)}
-              className="text-white/80 hover:text-red-400 transition-colors text-2xl"
-            >
-              ❤️
-            </button>
-          </div>
-
-          {/* Navigation areas */}
-          <button
-            aria-label="Previous Status"
-            className="absolute left-0 top-0 bottom-0 w-1/3"
-            onClick={() => {
-              if (activeStatusIndex > 0) setActiveStatusIndex(activeStatusIndex - 1);
-              else setShowStatusViewer(false);
-            }}
-          />
-          <button
-            aria-label="Next Status"
-            className="absolute right-0 top-0 bottom-0 w-1/3"
-            onClick={() => {
-              if (activeStatusIndex < activeStatusGroup.statuses.length - 1) {
-                setActiveStatusIndex(activeStatusIndex + 1);
-              } else {
-                setShowStatusViewer(false);
-              }
-            }}
-          />
-        </div>
+      {/* Rendered Status Viewer Modal */}
+      {showStatusViewer && (
+        <StatusViewerModal
+          group={activeStatusGroup}
+          activeIndex={activeStatusIndex}
+          setActiveIndex={setActiveStatusIndex}
+          onClose={() => setShowStatusViewer(false)}
+          onLike={handleLikeStatus}
+        />
       )}
     </aside>
   );

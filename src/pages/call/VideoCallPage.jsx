@@ -101,7 +101,7 @@ const VideoCallPage = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[90] overflow-hidden bg-black text-white select-none"
+      className="fixed inset-0 z-[90] overflow-hidden bg-black text-white select-none font-sans"
       onClick={handleScreenTap}
     >
       {/* ─── BACKGROUND ─── */}
@@ -115,26 +115,22 @@ const VideoCallPage = () => {
         />
       ) : (
         /* Calling / Connecting Screen */
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-gray-900 via-gray-950 to-black flex flex-col items-center justify-center">
-          {/* Animated Ripples */}
-          <div className="relative flex items-center justify-center mb-8">
-            <div className="absolute w-36 h-36 rounded-full border border-white/10 animate-ping" style={{ animationDuration: "2s" }} />
-            <div className="absolute w-48 h-48 rounded-full border border-white/5 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "0.4s" }} />
-            <div className="absolute w-60 h-60 rounded-full border border-white/[0.03] animate-ping" style={{ animationDuration: "3s", animationDelay: "0.8s" }} />
+        <div className="absolute inset-0 z-0 bg-black flex flex-col items-center justify-center p-6">
+          
+          {/* Subtle Ambient Ring Animation */}
+          <div className="relative flex items-center justify-center mb-10">
+            <div className="absolute w-40 h-40 border border-white/20 animate-ping" style={{ animationDuration: "2.5s" }} />
+            <div className="absolute w-56 h-56 border border-white/10 animate-ping" style={{ animationDuration: "3s", animationDelay: "0.5s" }} />
             
-            <div className="relative z-10">
-              <div className="rounded-full p-1 bg-gradient-to-br from-blue-400 to-blue-600 shadow-2xl shadow-blue-500/20">
-                <div className="rounded-full p-0.5 bg-gray-900">
-                  <Avatar user={callUser} size="2xl" showStatus={false} />
-                </div>
-              </div>
+            <div className="relative z-10 border-2 border-white/30 p-2 bg-black">
+              <Avatar user={callUser} size="2xl" showStatus={false} />
             </div>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2 text-white text-center">
             {callUser.fullName}
           </h2>
-          <p className="text-sm font-medium text-blue-400 animate-pulse">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 animate-pulse">
             {callState === "calling" ? "Calling..." : "Connecting..."}
           </p>
         </div>
@@ -143,10 +139,10 @@ const VideoCallPage = () => {
       {/* ─── LOCAL VIDEO (PiP) ─── */}
       {localStream && !isCameraOff && (
         <div
-          className={`absolute z-30 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-black transition-all duration-300 ${
+          className={`absolute z-30 border border-white/30 bg-black transition-all duration-300 ${
             pipMode
-              ? "top-4 right-4 w-24 h-32 sm:w-28 sm:h-36"
-              : "top-4 right-4 w-32 h-44 sm:w-40 sm:h-56"
+              ? "top-6 right-6 w-24 h-32 sm:w-28 sm:h-36"
+              : "top-6 right-6 w-32 h-44 sm:w-40 sm:h-56"
           }`}
         >
           <video
@@ -159,9 +155,9 @@ const VideoCallPage = () => {
           {/* PiP Toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); setPipMode(!pipMode); }}
-            className="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
+            className="absolute bottom-2 right-2 w-7 h-7 bg-black/80 border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all"
           >
-            {pipMode ? <Maximize size={12} /> : <Minimize size={12} />}
+            {pipMode ? <Maximize size={14} /> : <Minimize size={14} />}
           </button>
         </div>
       )}
@@ -172,30 +168,30 @@ const VideoCallPage = () => {
           showControls || !isConnected ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
         }`}
       >
-        <div className="bg-gradient-to-b from-black/80 via-black/40 to-transparent pt-4 pb-8 px-6">
+        <div className="bg-gradient-to-b from-black via-black/70 to-transparent pt-6 pb-10 px-8">
           <div className="flex items-center justify-between">
             {/* Left: E2E Badge */}
-            <div className="flex items-center gap-2">
-              <ShieldCheck size={14} className="text-emerald-400" />
-              <span className="text-xs font-medium text-emerald-400/80 tracking-wide">
+            <div className="flex items-center gap-2 border border-zinc-800 bg-black/60 px-3 py-1.5">
+              <ShieldCheck size={14} className="text-white" />
+              <span className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
                 Encrypted
               </span>
             </div>
 
             {/* Center: Name + Timer */}
             <div className="flex flex-col items-center">
-              <span className="text-sm font-semibold">
+              <span className="text-sm font-bold tracking-wide">
                 {callUser.fullName}
               </span>
               {isConnected && (
-                <span className="font-mono text-xs text-gray-300 tracking-wider">
+                <span className="font-mono text-xs text-gray-400 tracking-widest mt-0.5">
                   {formatTime(callDuration)}
                 </span>
               )}
             </div>
 
-            {/* Right: Call Type */}
-            <span className="text-xs text-gray-400 capitalize">
+            {/* Right: Call Type Tag */}
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               {callState === "connected" ? "Video Call" : ""}
             </span>
           </div>
@@ -208,55 +204,57 @@ const VideoCallPage = () => {
           showControls || !isConnected ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 pointer-events-none"
         }`}
       >
-        <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-8 sm:pb-10 px-6">
-          <div className="flex items-center justify-center gap-5 sm:gap-8">
-            {/* Camera Flip (placeholder) */}
+        <div className="bg-gradient-to-t from-black via-black/80 to-transparent pt-12 pb-8 sm:pb-12 px-6">
+          <div className="flex items-center justify-center gap-4 sm:gap-6">
+            
+            {/* Camera Switch */}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); switchCamera(); }}
-              className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-all active:scale-90"
+              className="w-12 h-12 bg-zinc-900 border border-zinc-800 text-white flex items-center justify-center hover:bg-zinc-800 transition-all active:scale-95"
               aria-label="Switch camera"
             >
-              <RotateCcw size={20} />
+              <RotateCcw size={18} />
             </button>
 
             {/* Camera Toggle */}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); toggleCamera(); }}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 backdrop-blur-sm ${
+              className={`w-12 h-12 border flex items-center justify-center transition-all active:scale-95 ${
                 isCameraOff
-                  ? "bg-white text-gray-900"
-                  : "bg-white/10 hover:bg-white/20"
+                  ? "bg-white text-black border-white"
+                  : "bg-zinc-900 text-white border-zinc-800 hover:bg-zinc-800"
               }`}
               aria-label={isCameraOff ? "Turn on camera" : "Turn off camera"}
             >
-              {isCameraOff ? <VideoOff size={20} /> : <Video size={20} />}
+              {isCameraOff ? <VideoOff size={18} /> : <Video size={18} />}
             </button>
 
             {/* Mic Toggle */}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 backdrop-blur-sm ${
+              className={`w-12 h-12 border flex items-center justify-center transition-all active:scale-95 ${
                 isMuted
-                  ? "bg-white text-gray-900"
-                  : "bg-white/10 hover:bg-white/20"
+                  ? "bg-white text-black border-white"
+                  : "bg-zinc-900 text-white border-zinc-800 hover:bg-zinc-800"
               }`}
               aria-label={isMuted ? "Unmute" : "Mute"}
             >
-              {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+              {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
             </button>
 
             {/* End Call */}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); endCall(); }}
-              className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all active:scale-90 shadow-lg shadow-red-500/30"
+              className="w-14 h-14 bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all active:scale-95 ml-2"
               aria-label="End call"
             >
-              <PhoneOff size={24} />
+              <PhoneOff size={22} />
             </button>
+
           </div>
         </div>
       </div>

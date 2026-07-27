@@ -16,12 +16,12 @@ const ChatWindow = () => {
   useEffect(() => {
     if (activeConversation) {
       fetchMessages(activeConversation._id);
-      
+
       if (activeConversation.unreadCount > 0) {
         markMessagesRead(activeConversation._id);
       }
     }
-  }, [activeConversation?._id, fetchMessages]);
+  }, [activeConversation?._id, fetchMessages, markMessagesRead]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -77,11 +77,10 @@ const ChatWindow = () => {
       const res = await axios.delete(`/api/chat/messages/${messageId}`);
       if (res.data.success) {
         toast.success("Message deleted");
-        // Re-fetch messages to reflect deletion
         fetchMessages(activeConversation._id);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to delete");
+      toast.error(error.response?.data?.message || "Failed to delete message");
     }
     setContextMenu(null);
   };
@@ -89,7 +88,7 @@ const ChatWindow = () => {
   if (!activeConversation) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white animate-fadeIn">
-        <div className="w-20 h-20 rounded-3xl bg-gray-50/80 border border-gray-200 flex items-center justify-center text-black mb-5 shadow-xl">
+        <div className="w-20 h-20 rounded-3xl bg-gray-50 border border-gray-200 flex items-center justify-center text-black mb-5 shadow-sm">
           <MessageSquare size={36} />
         </div>
         <h3 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">
@@ -105,7 +104,7 @@ const ChatWindow = () => {
   if (isLoadingMessages) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white">
-        <Loader2 className="w-10 h-10 text-black animate-spin" />
+        <Loader2 className="w-8 h-8 text-black animate-spin" />
       </div>
     );
   }
@@ -172,22 +171,22 @@ const ChatWindow = () => {
               rel="noopener noreferrer"
               className={`flex items-center gap-3 p-3 rounded-xl transition-colors border ${
                 isMine
-                  ? "bg-black/15 hover:bg-black/25 border-white/20 text-gray-900"
-                  : "bg-gray-100/80 hover:bg-gray-100 border-gray-300 text-gray-900"
+                  ? "bg-white/10 hover:bg-white/20 border-white/20 text-white"
+                  : "bg-gray-100 hover:bg-gray-200/70 border-gray-300/60 text-gray-900"
               }`}
             >
               <div
                 className={`p-2.5 rounded-lg shrink-0 ${
-                  isMine ? "bg-white/20 text-gray-900" : "bg-black/10 text-black"
+                  isMine ? "bg-white/20 text-white" : "bg-black/10 text-black"
                 }`}
               >
-                <FileText size={22} />
+                <FileText size={20} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">
                   {message.fileName || "Download File"}
                 </p>
-                <p className={`text-xs ${isMine ? "text-gray-900/80" : "text-gray-500"}`}>
+                <p className={`text-xs ${isMine ? "text-white/70" : "text-gray-500"}`}>
                   {formatBytes(message.fileSize)}
                 </p>
               </div>
@@ -225,7 +224,7 @@ const ChatWindow = () => {
                   key={i}
                   className={`w-1 rounded-full transition-all duration-300 ${
                     isPlaying ? "animate-pulse" : ""
-                  } ${isMine ? "bg-white/80" : "bg-slate-400"}`}
+                  } ${isMine ? "bg-white/80" : "bg-gray-400"}`}
                   style={{ height: `${h}%` }}
                 />
               ))}
@@ -240,12 +239,12 @@ const ChatWindow = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-4 bg-white scrollbar-thin scrollbar-thumb-slate-800 relative">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-4 bg-white relative">
       {Object.keys(groupedMessages).map((date) => (
         <React.Fragment key={date}>
           {/* Date Header Badge */}
           <div className="flex items-center justify-center my-2">
-            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100/60 border border-gray-300/50 text-gray-500 backdrop-blur-sm shadow-sm">
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-gray-500 shadow-xs">
               {new Date(date).toDateString() === new Date().toDateString()
                 ? "Today"
                 : new Date(date).toDateString() ===
@@ -268,10 +267,10 @@ const ChatWindow = () => {
               <div
                 key={message._id}
                 onContextMenu={(e) => handleContextMenu(e, message)}
-                className={`max-w-[82%] sm:max-w-[70%] px-4 py-3 relative flex flex-col shadow-md transition-all duration-200 group/msg ${
+                className={`max-w-[82%] sm:max-w-[70%] px-4 py-3 relative flex flex-col shadow-sm transition-all duration-200 group/msg ${
                   isMine
                     ? "self-end rounded-2xl rounded-br-xs bg-black text-white"
-                    : "self-start rounded-2xl rounded-bl-xs bg-gray-50/80 text-gray-900 border border-gray-200"
+                    : "self-start rounded-2xl rounded-bl-xs bg-gray-50 text-gray-900 border border-gray-200"
                 }`}
               >
                 {!isMine && activeConversation?.isGroup && (
@@ -282,12 +281,12 @@ const ChatWindow = () => {
                 {renderMessageContent(message, isMine)}
 
                 {/* Message Timestamp + Delete hint */}
-                <div className={`flex items-center gap-2 mt-1.5 self-end`}>
+                <div className="flex items-center gap-2 mt-1.5 self-end">
                   {canDelete && (
                     <button
                       onClick={() => handleDeleteMessage(message._id)}
                       className={`opacity-0 group-hover/msg:opacity-100 transition-opacity ${
-                        isMine ? 'text-white/60 hover:text-white' : 'text-gray-400 hover:text-red-500'
+                        isMine ? "text-white/60 hover:text-white" : "text-gray-400 hover:text-red-500"
                       }`}
                       title="Delete (within 2 min)"
                     >
@@ -296,7 +295,7 @@ const ChatWindow = () => {
                   )}
                   <span
                     className={`text-[10px] font-medium tracking-wider ${
-                      isMine ? "text-gray-900/80" : "text-gray-500"
+                      isMine ? "text-white/70" : "text-gray-500"
                     }`}
                   >
                     {new Date(message.createdAt).toLocaleTimeString(undefined, {
@@ -316,7 +315,7 @@ const ChatWindow = () => {
       {/* Context Menu */}
       {contextMenu && (
         <div
-          className="fixed z-50 bg-white rounded-xl shadow-2xl border border-gray-200 py-1 min-w-[140px]"
+          className="fixed z-50 bg-white rounded-xl shadow-xl border border-gray-200 py-1 min-w-[140px]"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <button

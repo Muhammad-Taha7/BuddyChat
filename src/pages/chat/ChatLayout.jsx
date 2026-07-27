@@ -59,11 +59,8 @@ const ChatLayout = () => {
   }, [socket, addMessage, setTyping]);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-50 text-gray-900 selection:bg-[#fc4a56]/30 selection:text-gray-900">
-      {/* Background Decorative Ambient Glows */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#fc4a56]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -z-10" />
-
+    <div className="flex h-screen w-screen overflow-hidden bg-white text-zinc-900 selection:bg-zinc-900 selection:text-white font-sans">
+      
       {/* Sidebar Panel (Hidden on mobile when conversation is active) */}
       <div
         className={`${
@@ -77,7 +74,7 @@ const ChatLayout = () => {
       <main
         className={`${
           !activeConversation ? "hidden md:flex" : "flex"
-        } flex-1 flex-col h-full relative min-w-0 bg-white/70 backdrop-blur-xl border-l border-gray-200/60`}
+        } flex-1 flex-col h-full relative min-w-0 bg-white border-l border-zinc-200`}
       >
         <ChatHeader />
         <ChatWindow />
