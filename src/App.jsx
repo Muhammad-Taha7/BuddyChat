@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 
 // State
 import useAuthStore from "./store/useAuthStore";
@@ -119,10 +118,8 @@ export const App = () => {
     };
   }, [socket]);
 
-  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "placeholder-client-id";
-
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <>
       <BrowserRouter>
         <Toaster
           position="top-center"
@@ -203,6 +200,6 @@ export const App = () => {
         )}
 
       </BrowserRouter>
-    </GoogleOAuthProvider>
+    </>
   );
 };
