@@ -8,13 +8,13 @@ import useSocketStore from "../../store/useSocketStore";
 import { toast } from "react-hot-toast";
 
 const ChatHeader = () => {
-  const { activeConversation, setActiveConversation, typingUsers, clearChatHistory } = useChatStore();
+  const { activeConversation, setActiveConversation, typingUsers, clearChatHistory, deleteGroup } = useChatStore();
   const { user } = useAuthStore();
   const { isUserOnline } = useSocketStore();
   const { initiateCall } = useCallStore();
 
   const [showMenu, setShowMenu] = useState(false);
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmationMode, setConfirmationMode] = useState(null); // 'clear' or 'delete'
   const menuRef = useRef(null);
 
   // Close menu on outside click
@@ -22,7 +22,7 @@ const ChatHeader = () => {
     const handleClose = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShowMenu(false);
-        setConfirmClear(false);
+        setConfirmationMode(null);
       }
     };
     if (showMenu) {
@@ -52,7 +52,18 @@ const ChatHeader = () => {
       toast.error("Failed to clear chat");
     }
     setShowMenu(false);
-    setConfirmClear(false);
+    setConfirmationMode(null);
+  };
+
+  const handleDeleteGroup = async () => {
+    const success = await deleteGroup(activeConversation._id);
+    if (success) {
+      toast.success("Group deleted successfully");
+    } else {
+      toast.error("Failed to delete group");
+    }
+    setShowMenu(false);
+    setConfirmationMode(null);
   };
 
   return (
@@ -131,7 +142,7 @@ const ChatHeader = () => {
         <div className="relative" ref={menuRef}>
           <button
             type="button"
-            onClick={() => { setShowMenu(!showMenu); setConfirmClear(false); }}
+            onClick={() => { setShowMenu(!showMenu); setConfirmationMode(null); }}
             aria-label="More options"
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-black hover:bg-gray-100 transition-colors active:scale-95"
           >
@@ -140,15 +151,26 @@ const ChatHeader = () => {
 
           {showMenu && (
             <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 min-w-[180px] z-50 animate-fadeIn">
-              {!confirmClear ? (
-                <button
-                  onClick={() => setConfirmClear(true)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 size={15} />
-                  Clear Chat
-                </button>
-              ) : (
+              {!confirmationMode ? (
+                <>
+                  <button
+                    onClick={() => setConfirmationMode("clear")}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 size={15} />
+                    Clear Chat
+                  </button>
+                  {activeConversation.isGroup && activeConversation.groupAdmins?.includes(user._id) && (
+                    <button
+                      onClick={() => setConfirmationMode("delete")}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={15} />
+                      Delete Group
+                    </button>
+                  )}
+                </>
+              ) : confirmationMode === "clear" ? (
                 <div className="px-4 py-3">
                   <p className="text-xs text-gray-600 mb-3">Clear all messages? This only affects your view.</p>
                   <div className="flex items-center gap-2">
@@ -159,7 +181,25 @@ const ChatHeader = () => {
                       Clear
                     </button>
                     <button
-                      onClick={() => setConfirmClear(false)}
+                      onClick={() => setConfirmationMode(null)}
+                      className="flex-1 text-xs font-medium py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-4 py-3">
+                  <p className="text-xs text-gray-600 mb-3">Delete this group? This will remove it for everyone.</p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleDeleteGroup}
+                      className="flex-1 text-xs font-medium py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => setConfirmationMode(null)}
                       className="flex-1 text-xs font-medium py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                     >
                       Cancel

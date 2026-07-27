@@ -157,6 +157,24 @@ const useChatStore = create((set, get) => ({
       return false;
     }
   },
+
+  // Delete a group conversation
+  deleteGroup: async (groupId) => {
+    try {
+      const res = await axios.delete(`/api/chat/group/${groupId}`);
+      if (res.data.success) {
+        set((state) => ({
+          conversations: state.conversations.filter((c) => c._id !== groupId),
+          activeConversation: state.activeConversation?._id === groupId ? null : state.activeConversation,
+          messages: state.activeConversation?._id === groupId ? [] : state.messages,
+        }));
+        return true;
+      }
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      return false;
+    }
+  },
 }));
 
 export default useChatStore;
