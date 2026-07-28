@@ -11,6 +11,7 @@ import useCallStore from "./store/useCallStore";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import IncomingCallModal from "./components/IncomingCallModal";
+import { stopRingtone } from "./utils/ringtone";
 
 // Pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -75,6 +76,7 @@ export const App = () => {
     };
 
     const handleCallAnswered = ({ answer }) => {
+      stopRingtone();
       toast.dismiss("incoming-call-toast");
       useCallStore.getState().handleAnswer(answer);
     };
@@ -84,18 +86,21 @@ export const App = () => {
     };
 
     const handleCallEnded = () => {
+      stopRingtone();
       toast.dismiss("incoming-call-toast");
       useCallStore.getState().receiveCallEnded();
       toast("Call ended", { icon: "📞" });
     };
 
     const handleCallRejected = () => {
+      stopRingtone();
       toast.dismiss("incoming-call-toast");
       useCallStore.getState().receiveCallEnded();
       toast.error("Call declined");
     };
 
     const handleCallFailed = ({ message }) => {
+      stopRingtone();
       toast.dismiss("incoming-call-toast");
       useCallStore.getState().receiveCallEnded();
       toast.error(message || "User is offline or unavailable");
