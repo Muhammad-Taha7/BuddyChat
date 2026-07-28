@@ -48,6 +48,12 @@ const StatusViewerModal = ({ group, activeIndex, setActiveIndex, onClose, onLike
     }
   };
 
+  useEffect(() => {
+    if (currentStatus) {
+      axios.put(`/api/status/${currentStatus._id}/view`).catch(console.error);
+    }
+  }, [currentStatus]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
       {/* Close Button */}
@@ -196,7 +202,7 @@ const NotificationItem = ({ notif, onMarkRead, onClose }) => {
 const ChatSidebar = () => {
   const { conversations, activeConversation, setActiveConversation, fetchConversations, markMessagesRead } = useChatStore();
   const { user, logout } = useAuthStore();
-  const { unreadCount, fetchNotifications, markAsRead, markAllAsRead, notifications } = useNotificationStore();
+  const { unreadCount, fetchNotifications, markAsRead, markAllAsRead, notifications, addNotification } = useNotificationStore();
   const socket = useSocketStore((state) => state.socket);
   const { showSuccess, showError } = useDialog();
 
@@ -229,7 +235,29 @@ const ChatSidebar = () => {
     fetchNotifications();
   }, [fetchConversations, fetchStatuses, fetchNotifications]);
 
-  const openStatusViewer = (group) => {
+  // Socket listeners for realtime status and notifications
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewStatus = () => {
+      fetchStatuses();
+    };
+
+    const handleNewNotification = (notif) => {
+      // Add the notification to the store directly for instant +1
+      addNotification(notif);
+    };
+
+    socket.on("newStatus", handleNewStatus);
+    socket.on("newNotification", handleNewNotification);
+
+    return () => {
+      socket.off("newStatus", handleNewStatus);
+      socket.off("newNotification", handleNewNotification);
+    };
+  }, [socket, fetchStatuses, fetchNotifications]);
+
+  const openStatusViewer = async (group) => {
     setActiveStatusGroup(group);
     setActiveStatusIndex(0);
     setShowStatusViewer(true);
@@ -238,7 +266,7 @@ const ChatSidebar = () => {
   const handleLikeStatus = async (statusId) => {
     if (!statusId) return;
     try {
-      await axios.post(`/api/status/${statusId}/like`);
+      await axios.put(`/api/status/${statusId}/like`);
       showSuccess("Liked!", "You liked this status.");
       fetchStatuses();
     } catch {

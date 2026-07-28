@@ -108,6 +108,33 @@ const useChatStore = create((set, get) => ({
     }));
   },
 
+  // Update an existing message (e.g., when deleted)
+  updateMessage: (messageId, conversationId, updates) => {
+    set((state) => {
+      let newMessages = state.messages;
+      if (state.activeConversation?._id === conversationId) {
+        newMessages = state.messages.map((msg) =>
+          msg._id === messageId ? { ...msg, ...updates } : msg
+        );
+      }
+
+      const newConversations = state.conversations.map((conv) => {
+        if (conv._id === conversationId && conv.lastMessage?._id === messageId) {
+          return {
+            ...conv,
+            lastMessage: { ...conv.lastMessage, ...updates }
+          };
+        }
+        return conv;
+      });
+
+      return {
+        messages: newMessages,
+        conversations: newConversations
+      };
+    });
+  },
+
   // Set typing status
   setTyping: (userId, isTyping) => {
     set((state) => ({

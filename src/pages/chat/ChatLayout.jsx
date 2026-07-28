@@ -8,7 +8,7 @@ import useChatStore from "../../store/useChatStore";
 
 const ChatLayout = () => {
   const socket = useSocketStore((state) => state.socket);
-  const { addMessage, setTyping, activeConversation } = useChatStore();
+  const { addMessage, setTyping, activeConversation, updateMessage } = useChatStore();
 
   useEffect(() => {
     if (!socket) return;
@@ -45,18 +45,25 @@ const ChatLayout = () => {
       }
     };
 
+    // Listen for deleted messages
+    const handleMessageDeleted = ({ messageId, conversationId, content, isDeletedForUsers }) => {
+      updateMessage(messageId, conversationId, { content, isDeletedForUsers });
+    };
+
     socket.on("newMessage", handleNewMessage);
     socket.on("messageSent", handleMessageSent);
     socket.on("userTyping", handleUserTyping);
     socket.on("messagesRead", handleMessagesRead);
+    socket.on("messageDeleted", handleMessageDeleted);
 
     return () => {
       socket.off("newMessage", handleNewMessage);
       socket.off("messageSent", handleMessageSent);
       socket.off("userTyping", handleUserTyping);
       socket.off("messagesRead", handleMessagesRead);
+      socket.off("messageDeleted", handleMessageDeleted);
     };
-  }, [socket, addMessage, setTyping]);
+  }, [socket, addMessage, setTyping, updateMessage]);
 
   return (
     <div

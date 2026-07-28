@@ -37,7 +37,7 @@ const ChatHeader = () => {
     activeConversation.participants[0];
 
   const isTyping = typingUsers[otherUser?._id];
-  const isOnline = otherUser ? onlineUsers.includes(otherUser._id) : false;
+  const isOnline = otherUser ? onlineUsers.includes(String(otherUser._id)) : false;
 
   const startCall = (type) => {
     initiateCall(otherUser, type);
