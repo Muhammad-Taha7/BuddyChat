@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import useSocketStore from "../store/useSocketStore";
 
 const Avatar = ({ user, size = "md", showStatus = true }) => {
-  const { isUserOnline } = useSocketStore();
+  const onlineUsers = useSocketStore((state) => state.onlineUsers);
   const [imgError, setImgError] = useState(false);
 
   if (!user) return null;
 
-  const isOnline = isUserOnline(user._id);
+  const isOnline = onlineUsers.includes(user._id);
 
   // Size mapping configuration
   const sizeMap = {

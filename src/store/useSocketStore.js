@@ -42,16 +42,19 @@ const useSocketStore = create((set, get) => ({
     });
 
     socket.on("onlineUsers", (users) => {
+      console.log("📋 Online users list received:", users);
       set({ onlineUsers: users });
     });
 
     socket.on("userOnline", ({ userId }) => {
+      console.log("🟢 User came online:", userId);
       set((state) => ({
         onlineUsers: [...new Set([...state.onlineUsers, userId])],
       }));
     });
 
     socket.on("userOffline", ({ userId }) => {
+      console.log("🔴 User went offline:", userId);
       set((state) => ({
         onlineUsers: state.onlineUsers.filter((id) => id !== userId),
       }));
@@ -67,11 +70,6 @@ const useSocketStore = create((set, get) => ({
       socket.disconnect();
       set({ socket: null, isConnected: false, onlineUsers: [] });
     }
-  },
-
-  // Check if a user is online
-  isUserOnline: (userId) => {
-    return get().onlineUsers.includes(userId);
   },
 }));
 

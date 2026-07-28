@@ -10,7 +10,7 @@ import { useDialog } from "../../components/DialogProvider";
 const ChatHeader = () => {
   const { activeConversation, setActiveConversation, typingUsers, clearChatHistory, deleteGroup } = useChatStore();
   const { user } = useAuthStore();
-  const { isUserOnline } = useSocketStore();
+  const onlineUsers = useSocketStore((state) => state.onlineUsers);
   const { initiateCall } = useCallStore();
   const { showConfirm, showSuccess, showError } = useDialog();
 
@@ -37,7 +37,7 @@ const ChatHeader = () => {
     activeConversation.participants[0];
 
   const isTyping = typingUsers[otherUser?._id];
-  const isOnline = otherUser ? isUserOnline(otherUser._id) : false;
+  const isOnline = otherUser ? onlineUsers.includes(otherUser._id) : false;
 
   const startCall = (type) => {
     initiateCall(otherUser, type);
