@@ -7,7 +7,7 @@ const Avatar = ({ user, size = "md", showStatus = true }) => {
 
   if (!user) return null;
 
-  const isOnline = onlineUsers.includes(user._id);
+  const isOnline = onlineUsers.includes(String(user._id));
 
   // Size mapping configuration
   const sizeMap = {
