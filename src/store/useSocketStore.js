@@ -20,6 +20,9 @@ const useSocketStore = create((set, get) => ({
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      extraHeaders: {
+        "ngrok-skip-browser-warning": "true",
+      },
     });
 
     socket.on("connect", () => {
