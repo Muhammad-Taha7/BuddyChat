@@ -162,7 +162,7 @@ const VideoCallPage = () => {
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover scale-x-[-1]"
+            className={`w-full h-full ${isScreenSharing ? "object-contain" : "object-cover scale-x-[-1]"}`}
           />
           {/* PiP Toggle */}
           <button
