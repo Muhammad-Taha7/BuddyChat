@@ -14,109 +14,144 @@ const getContext = () => {
 };
 
 const cleanupOscillators = () => {
-  currentOscillators.forEach((osc) => {
-    try { osc.stop(); } catch (e) {}
-    try { osc.disconnect(); } catch (e) {}
+  currentOscillators.forEach((node) => {
+    try { node.stop(); } catch (e) {}
+    try { node.disconnect(); } catch (e) {}
   });
   currentOscillators = [];
 };
 
 /**
- * Outgoing Call Tone (WhatsApp style)
- * A standard ringback tone: 1 second on, 3 seconds off
- * 425 Hz sine wave (ITU-T standard)
+ * Premium Outgoing Call Tone
+ * 440 Hz and 480 Hz mixed (European standard style, sounds modern)
+ * 1.2 second on, 3.3 seconds off
  */
 const playOutgoingTone = () => {
   const ctx = getContext();
   cleanupOscillators();
 
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
+  const playBeep = (freq, startTime, duration) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(425, ctx.currentTime);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, startTime);
 
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.05);
-  gain.gain.setValueAtTime(0.25, ctx.currentTime + 1.0);
-  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.1);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.15, startTime + 0.05);
+    gain.gain.setValueAtTime(0.15, startTime + duration - 0.05);
+    gain.gain.linearRampToValueAtTime(0, startTime + duration);
 
-  osc.connect(gain);
-  gain.connect(ctx.destination);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
 
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + 1.15);
-  currentOscillators.push(osc);
+    osc.start(startTime);
+    osc.stop(startTime + duration);
+    currentOscillators.push(osc);
+  };
+
+  const time = ctx.currentTime;
+  // Dual tone for rich sound
+  playBeep(440, time, 1.2);
+  playBeep(480, time, 1.2);
 };
 
 /**
- * Incoming Call Ringtone (WhatsApp style)
- * Two short rising tones, like a phone ringing
+ * Premium Incoming Ringtone (Marimba / Bell style)
+ * A pleasant melodic sequence
  */
 const playIncomingTone = () => {
   const ctx = getContext();
   cleanupOscillators();
 
-  const playBurst = (startOffset) => {
+  const playNote = (freq, startOffset, duration) => {
     const time = ctx.currentTime + startOffset;
-
+    
+    // Main oscillator (Sine for purity)
     const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain = ctx.createGain();
-
     osc1.type = "sine";
-    osc1.frequency.setValueAtTime(523, time); // C5
-    osc1.frequency.linearRampToValueAtTime(659, time + 0.15); // Rising to E5
+    osc1.frequency.setValueAtTime(freq, time);
 
-    osc2.type = "sine";
-    osc2.frequency.setValueAtTime(659, time); // E5
-    osc2.frequency.linearRampToValueAtTime(784, time + 0.15); // Rising to G5
+    // Harmonic oscillator (Triangle for bell-like timbre)
+    const osc2 = ctx.createOscillator();
+    osc2.type = "triangle";
+    osc2.frequency.setValueAtTime(freq * 2, time);
 
-    gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(0.35, time + 0.03);
-    gain.gain.setValueAtTime(0.35, time + 0.12);
-    gain.gain.linearRampToValueAtTime(0, time + 0.18);
+    // Envelope
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0, time);
+    gainNode.gain.linearRampToValueAtTime(0.4, time + 0.02); // Fast attack
+    gainNode.gain.exponentialRampToValueAtTime(0.01, time + duration); // Long decay
 
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(ctx.destination);
+    // Filter to make it warm
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(2500, time);
+    filter.frequency.exponentialRampToValueAtTime(500, time + duration);
+
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(filter);
+    filter.connect(ctx.destination);
 
     osc1.start(time);
-    osc1.stop(time + 0.2);
     osc2.start(time);
-    osc2.stop(time + 0.2);
+    osc1.stop(time + duration);
+    osc2.stop(time + duration);
 
     currentOscillators.push(osc1, osc2);
   };
 
-  // Two quick bursts
-  playBurst(0);
-  playBurst(0.3);
+  // Nice melodic sequence (Pentatonic scale)
+  const notes = [
+    { f: 523.25, t: 0.0 },  // C5
+    { f: 659.25, t: 0.15 }, // E5
+    { f: 783.99, t: 0.3 },  // G5
+    { f: 1046.50, t: 0.45 },// C6
+    { f: 783.99, t: 0.65 }, // G5
+    { f: 1046.50, t: 0.8 }, // C6
+  ];
+
+  notes.forEach(note => playNote(note.f, note.t, 1.5));
 };
 
-/**
- * Start ringtone
- * @param {"incoming" | "outgoing"} type
- */
+export const playNotificationTone = () => {
+  const ctx = getContext();
+  const time = ctx.currentTime;
+  
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(800, time);
+  osc.frequency.exponentialRampToValueAtTime(1200, time + 0.1);
+  
+  gain.gain.setValueAtTime(0, time);
+  gain.gain.linearRampToValueAtTime(0.3, time + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+  
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  
+  osc.start(time);
+  osc.stop(time + 0.2);
+};
+
 export const startRingtone = (type = "incoming") => {
-  // Prevent overlapping
   if (isPlaying) {
     stopRingtone();
   }
   isPlaying = true;
 
   const play = type === "outgoing" ? playOutgoingTone : playIncomingTone;
-  const interval = type === "outgoing" ? 4000 : 1800;
+  const interval = type === "outgoing" ? 4500 : 2500;
 
-  play(); // Play immediately
+  play();
   intervalId = setInterval(() => {
     if (isPlaying) play();
   }, interval);
 };
 
-/**
- * Stop ringtone
- */
 export const stopRingtone = () => {
   isPlaying = false;
   if (intervalId) {

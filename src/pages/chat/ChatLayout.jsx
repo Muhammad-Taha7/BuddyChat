@@ -5,9 +5,12 @@ import ChatWindow from "./ChatWindow";
 import MessageInput from "./MessageInput";
 import useSocketStore from "../../store/useSocketStore";
 import useChatStore from "../../store/useChatStore";
+import useAuthStore from "../../store/useAuthStore";
+import { playNotificationTone } from "../../utils/ringtone";
 
 const ChatLayout = () => {
   const socket = useSocketStore((state) => state.socket);
+  const { user } = useAuthStore();
   const { addMessage, setTyping, activeConversation, updateMessage } = useChatStore();
 
   useEffect(() => {
@@ -16,6 +19,11 @@ const ChatLayout = () => {
     // Listen for new incoming messages
     const handleNewMessage = ({ message, conversationId }) => {
       addMessage(message, conversationId);
+
+      // Play sound for incoming message if it's from someone else
+      if (message.sender?._id !== user?._id && message.sender !== user?._id) {
+        playNotificationTone();
+      }
 
       // If actively viewing this conversation, acknowledge read status
       const state = useChatStore.getState();

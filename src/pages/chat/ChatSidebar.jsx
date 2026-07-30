@@ -23,6 +23,7 @@ import Dialog from "../../components/Dialog";
 import { useDialog } from "../../components/DialogProvider";
 import axios from "../../lib/axios";
 import { toast } from "react-hot-toast";
+import { playNotificationTone } from "../../utils/ringtone";
 
 // --- Sub-component: Status Viewer Modal ---
 const StatusViewerModal = ({ group, activeIndex, setActiveIndex, onClose, onLike }) => {
@@ -203,6 +204,7 @@ const ChatSidebar = () => {
   const { conversations, activeConversation, setActiveConversation, fetchConversations, markMessagesRead } = useChatStore();
   const { user, logout } = useAuthStore();
   const { unreadCount, fetchNotifications, markAsRead, markAllAsRead, notifications, addNotification } = useNotificationStore();
+  const unreadRequestCount = notifications.filter(n => !n.isRead && n.type === "friend_request").length;
   const socket = useSocketStore((state) => state.socket);
   const { showSuccess, showError } = useDialog();
 
@@ -244,8 +246,13 @@ const ChatSidebar = () => {
     };
 
     const handleNewNotification = (notif) => {
+      // Play a subtle notification tone
+      playNotificationTone();
       // Add the notification to the store directly for instant +1
       addNotification(notif);
+      if (notif.type === "friend_accept") {
+        fetchConversations();
+      }
     };
 
     socket.on("newStatus", handleNewStatus);
@@ -552,13 +559,18 @@ const ChatSidebar = () => {
         <Link 
           to="/requests" 
           aria-label="Friend Requests"
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
+          className={`relative w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
             location.pathname === "/requests" 
               ? "bg-black text-white shadow-md shadow-black/20" 
               : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
           }`}
         >
           <Users size={20} />
+          {unreadRequestCount > 0 && (
+            <span className="absolute top-2 right-2 flex h-3 w-3 items-center justify-center rounded-full bg-[#fc4a56] ring-2 ring-white text-[8px] font-bold text-white">
+              1
+            </span>
+          )}
         </Link>
         <Link 
           to={`/profile/${user?._id}`} 
