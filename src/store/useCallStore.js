@@ -55,6 +55,8 @@ const useCallStore = create((set, get) => ({
   incomingCall: null,
   iceCandidatesQueue: [],
   remoteStreamUpdate: 0,
+  isScreenSharing: false,
+  originalVideoTrack: null,
 
   // ─── Timer ───
   startTimer: () => {
@@ -440,6 +442,75 @@ const useCallStore = create((set, get) => ({
     }
   },
 
+  // ─── Toggle screen share ───
+  toggleScreenShare: async () => {
+    const { localStream, peerConnection, isScreenSharing, originalVideoTrack } = get();
+    if (!localStream || !peerConnection) return;
+
+    if (isScreenSharing) {
+      // STOP screen share -> revert to original video track
+      const sender = peerConnection.getSenders().find(s => s.track?.kind === "video");
+      if (sender && originalVideoTrack) {
+        try {
+          await sender.replaceTrack(originalVideoTrack);
+        } catch(e) {}
+      }
+
+      // Stop screen share track
+      const screenTrack = localStream.getVideoTracks()[0];
+      if (screenTrack) screenTrack.stop();
+
+      // Ensure original track is enabled if we weren't muted
+      if (originalVideoTrack) {
+        originalVideoTrack.enabled = !get().isCameraOff;
+      }
+
+      const newLocalStream = new MediaStream(
+        originalVideoTrack 
+          ? [originalVideoTrack, ...localStream.getAudioTracks()]
+          : localStream.getAudioTracks()
+      );
+      
+      set({ 
+        localStream: newLocalStream, 
+        isScreenSharing: false,
+        originalVideoTrack: null
+      });
+    } else {
+      // START screen share
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        const screenTrack = screenStream.getVideoTracks()[0];
+
+        // Save original video track before replacing
+        const currentVideoTrack = localStream.getVideoTracks()[0];
+        
+        // Listen for browser native "Stop sharing" button
+        screenTrack.onended = () => {
+          if (get().isScreenSharing) {
+            get().toggleScreenShare();
+          }
+        };
+
+        const sender = peerConnection.getSenders().find(s => s.track?.kind === "video");
+        if (sender) {
+          await sender.replaceTrack(screenTrack);
+        }
+
+        const newLocalStream = new MediaStream([screenTrack, ...localStream.getAudioTracks()]);
+
+        set({
+          localStream: newLocalStream,
+          isScreenSharing: true,
+          originalVideoTrack: currentVideoTrack,
+          isCameraOff: false
+        });
+      } catch (error) {
+        console.warn("Screen share cancelled or failed:", error);
+      }
+    }
+  },
+
   // ─── Reject incoming call (callee declines) ───
   rejectCall: (call) => {
     const callData = call || get().incomingCall;
@@ -476,6 +547,10 @@ const useCallStore = create((set, get) => ({
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
+    const { originalVideoTrack } = get();
+    if (originalVideoTrack) {
+      originalVideoTrack.stop();
+    }
 
     if (callTimer) {
       clearInterval(callTimer);
@@ -495,6 +570,8 @@ const useCallStore = create((set, get) => ({
       incomingCall: null,
       iceCandidatesQueue: [],
       remoteStreamUpdate: 0,
+      isScreenSharing: false,
+      originalVideoTrack: null,
     });
   },
 
@@ -509,6 +586,9 @@ const useCallStore = create((set, get) => ({
       peerConnection.close();
     }
     if (localStream) localStream.getTracks().forEach((track) => track.stop());
+    const { originalVideoTrack } = get();
+    if (originalVideoTrack) originalVideoTrack.stop();
+
     if (callTimer) clearInterval(callTimer);
 
     set({
@@ -525,6 +605,8 @@ const useCallStore = create((set, get) => ({
       incomingCall: null,
       iceCandidatesQueue: [],
       remoteStreamUpdate: 0,
+      isScreenSharing: false,
+      originalVideoTrack: null,
     });
   },
 }));

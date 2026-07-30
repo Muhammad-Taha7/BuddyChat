@@ -9,6 +9,8 @@ import {
   RotateCcw,
   Maximize,
   Minimize,
+  MonitorUp,
+  MonitorOff,
 } from "lucide-react";
 import useCallStore from "../../store/useCallStore";
 import Avatar from "../../components/Avatar";
@@ -28,6 +30,8 @@ const VideoCallPage = () => {
     switchCamera,
     endCall,
     remoteStreamUpdate,
+    isScreenSharing,
+    toggleScreenShare,
   } = useCallStore();
 
   const isConnected = callState === "connected";
@@ -238,6 +242,22 @@ const VideoCallPage = () => {
             >
               {isCameraOff ? <VideoOff size={18} /> : <Video size={18} />}
             </button>
+
+            {/* Screen Share Toggle */}
+            {callType === "video" && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); toggleScreenShare(); }}
+                className={`w-12 h-12 border flex items-center justify-center transition-all active:scale-95 ${
+                  isScreenSharing
+                    ? "bg-white text-black border-white"
+                    : "bg-zinc-900 text-white border-zinc-800 hover:bg-zinc-800"
+                }`}
+                aria-label={isScreenSharing ? "Stop sharing screen" : "Share screen"}
+              >
+                {isScreenSharing ? <MonitorOff size={18} /> : <MonitorUp size={18} />}
+              </button>
+            )}
 
             {/* Mic Toggle */}
             <button
