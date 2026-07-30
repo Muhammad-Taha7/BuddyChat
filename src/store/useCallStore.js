@@ -120,15 +120,15 @@ const useCallStore = create((set, get) => ({
       // Receive remote tracks
       pc.ontrack = (event) => {
         console.log(`[WebRTC] Receiving ${event.track.kind} track from peer`);
-        if (event.streams && event.streams[0]) {
-          set({ remoteStream: event.streams[0] });
-        } else {
-          set((state) => {
-             const newStream = new MediaStream(state.remoteStream?.getTracks() || []);
-             newStream.addTrack(event.track);
-             return { remoteStream: newStream };
-          });
-        }
+        set((state) => {
+          // Always create a fresh MediaStream array to force React to re-render
+          const existingTracks = state.remoteStream ? state.remoteStream.getTracks() : [];
+          // Avoid duplicate tracks
+          if (!existingTracks.find(t => t.id === event.track.id)) {
+            existingTracks.push(event.track);
+          }
+          return { remoteStream: new MediaStream(existingTracks) };
+        });
       };
 
       // Send ICE candidates to peer
@@ -228,15 +228,13 @@ const useCallStore = create((set, get) => ({
 
       pc.ontrack = (event) => {
         console.log(`[WebRTC] Receiving ${event.track.kind} track`);
-        if (event.streams && event.streams[0]) {
-          set({ remoteStream: event.streams[0] });
-        } else {
-          set((state) => {
-             const newStream = new MediaStream(state.remoteStream?.getTracks() || []);
-             newStream.addTrack(event.track);
-             return { remoteStream: newStream };
-          });
-        }
+        set((state) => {
+          const existingTracks = state.remoteStream ? state.remoteStream.getTracks() : [];
+          if (!existingTracks.find(t => t.id === event.track.id)) {
+            existingTracks.push(event.track);
+          }
+          return { remoteStream: new MediaStream(existingTracks) };
+        });
       };
 
       pc.onicecandidate = (event) => {

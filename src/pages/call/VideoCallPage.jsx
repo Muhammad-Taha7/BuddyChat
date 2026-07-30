@@ -65,13 +65,13 @@ const VideoCallPage = () => {
     if (videoEl && remoteStream) {
       if (videoEl.srcObject !== remoteStream) {
         videoEl.srcObject = remoteStream;
+        videoEl.volume = 1.0;
+        videoEl.play().catch((err) => {
+          console.warn("[VideoCall] Remote video autoplay blocked:", err.message);
+        });
       }
-      videoEl.volume = 1.0;
-      videoEl.play().catch((err) => {
-        console.warn("[VideoCall] Remote video autoplay blocked:", err.message);
-      });
     }
-  });
+  }, [remoteStream, isConnected]);
 
   // Auto-hide controls after 4s of inactivity
   useEffect(() => {
