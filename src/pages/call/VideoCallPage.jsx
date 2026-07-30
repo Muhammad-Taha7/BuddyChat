@@ -48,24 +48,30 @@ const VideoCallPage = () => {
     return () => stopRingtone();
   }, [callState]);
 
-  // Attach local video
+  // Attach local video reliably
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
+    const videoEl = localVideoRef.current;
+    if (videoEl && localStream) {
+      if (videoEl.srcObject !== localStream) {
+        videoEl.srcObject = localStream;
+      }
+      videoEl.play().catch((err) => console.warn("Local video play error:", err));
     }
-  }, [localStream]);
+  });
 
-  // Attach remote video/audio and force play
+  // Attach remote video/audio reliably
   useEffect(() => {
     const videoEl = remoteVideoRef.current;
     if (videoEl && remoteStream) {
-      videoEl.srcObject = remoteStream;
+      if (videoEl.srcObject !== remoteStream) {
+        videoEl.srcObject = remoteStream;
+      }
       videoEl.volume = 1.0;
       videoEl.play().catch((err) => {
         console.warn("[VideoCall] Remote video autoplay blocked:", err.message);
       });
     }
-  }, [remoteStream, hasRemoteVideo, isConnected]);
+  });
 
   // Auto-hide controls after 4s of inactivity
   useEffect(() => {
