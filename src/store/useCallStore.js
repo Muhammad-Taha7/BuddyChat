@@ -291,6 +291,10 @@ const useCallStore = create((set, get) => ({
   handleAnswer: async (answer) => {
     const pc = get().peerConnection;
     if (pc && pc.signalingState !== "closed") {
+      if (pc.signalingState !== "have-local-offer") {
+        console.warn(`[WebRTC] Ignoring answer. signalingState is ${pc.signalingState}`);
+        return;
+      }
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
 
