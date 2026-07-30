@@ -27,10 +27,12 @@ const VideoCallPage = () => {
     toggleCamera,
     switchCamera,
     endCall,
+    remoteStreamUpdate,
   } = useCallStore();
 
   const isConnected = callState === "connected";
-  const hasRemoteVideo = remoteStream && remoteStream.getVideoTracks().length > 0;
+  // The expression is re-evaluated when remoteStreamUpdate increments
+  const hasRemoteVideo = remoteStream && remoteStream.getVideoTracks().length > 0 && remoteStreamUpdate !== undefined;
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -65,13 +67,13 @@ const VideoCallPage = () => {
     if (videoEl && remoteStream) {
       if (videoEl.srcObject !== remoteStream) {
         videoEl.srcObject = remoteStream;
-        videoEl.volume = 1.0;
-        videoEl.play().catch((err) => {
-          console.warn("[VideoCall] Remote video autoplay blocked:", err.message);
-        });
       }
+      videoEl.volume = 1.0;
+      videoEl.play().catch((err) => {
+        console.warn("[VideoCall] Remote video autoplay blocked:", err.message);
+      });
     }
-  }, [remoteStream, isConnected]);
+  }, [remoteStream, isConnected, remoteStreamUpdate]);
 
   // Auto-hide controls after 4s of inactivity
   useEffect(() => {

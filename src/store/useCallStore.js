@@ -5,9 +5,21 @@ const configuration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-    { urls: "stun:stun3.l.google.com:19302" },
-    { urls: "stun:stun4.l.google.com:19302" },
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443?transport=tcp",
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    }
   ],
 };
 
@@ -42,6 +54,7 @@ const useCallStore = create((set, get) => ({
   callTimer: null,
   incomingCall: null,
   iceCandidatesQueue: [],
+  remoteStreamUpdate: 0,
 
   // ─── Timer ───
   startTimer: () => {
@@ -121,13 +134,19 @@ const useCallStore = create((set, get) => ({
       pc.ontrack = (event) => {
         console.log(`[WebRTC] Receiving ${event.track.kind} track from peer`);
         set((state) => {
-          // Always create a fresh MediaStream array to force React to re-render
-          const existingTracks = state.remoteStream ? state.remoteStream.getTracks() : [];
-          // Avoid duplicate tracks
-          if (!existingTracks.find(t => t.id === event.track.id)) {
-            existingTracks.push(event.track);
+          let stream = state.remoteStream;
+          if (event.streams && event.streams[0]) {
+            stream = event.streams[0];
+          } else {
+            if (!stream) stream = new MediaStream();
+            if (!stream.getTracks().find(t => t.id === event.track.id)) {
+              stream.addTrack(event.track);
+            }
           }
-          return { remoteStream: new MediaStream(existingTracks) };
+          return { 
+            remoteStream: stream,
+            remoteStreamUpdate: state.remoteStreamUpdate + 1
+          };
         });
       };
 
@@ -229,11 +248,19 @@ const useCallStore = create((set, get) => ({
       pc.ontrack = (event) => {
         console.log(`[WebRTC] Receiving ${event.track.kind} track`);
         set((state) => {
-          const existingTracks = state.remoteStream ? state.remoteStream.getTracks() : [];
-          if (!existingTracks.find(t => t.id === event.track.id)) {
-            existingTracks.push(event.track);
+          let stream = state.remoteStream;
+          if (event.streams && event.streams[0]) {
+            stream = event.streams[0];
+          } else {
+            if (!stream) stream = new MediaStream();
+            if (!stream.getTracks().find(t => t.id === event.track.id)) {
+              stream.addTrack(event.track);
+            }
           }
-          return { remoteStream: new MediaStream(existingTracks) };
+          return { 
+            remoteStream: stream,
+            remoteStreamUpdate: state.remoteStreamUpdate + 1
+          };
         });
       };
 
@@ -467,6 +494,7 @@ const useCallStore = create((set, get) => ({
       callTimer: null,
       incomingCall: null,
       iceCandidatesQueue: [],
+      remoteStreamUpdate: 0,
     });
   },
 
@@ -496,6 +524,7 @@ const useCallStore = create((set, get) => ({
       callTimer: null,
       incomingCall: null,
       iceCandidatesQueue: [],
+      remoteStreamUpdate: 0,
     });
   },
 }));
