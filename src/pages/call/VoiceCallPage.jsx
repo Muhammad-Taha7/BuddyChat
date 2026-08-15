@@ -1,197 +1,150 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Mic,
-  MicOff,
-  PhoneOff,
-  Volume2,
-  ShieldCheck,
-} from "lucide-react";
+import { Mic, MicOff, PhoneOff, Volume2, VolumeX, ShieldCheck, Signal } from "lucide-react";
 import useCallStore from "../../store/useCallStore";
 import Avatar from "../../components/Avatar";
 import { startRingtone, stopRingtone } from "../../utils/ringtone";
 
 const VoiceCallPage = () => {
   const {
-    callUser,
-    localStream,
-    remoteStream,
-    isMuted,
-    callDuration,
-    callState,
-    toggleMute,
-    endCall,
+    callUser, localStream, remoteStream, isMuted,
+    callDuration, callState, toggleMute, endCall,
   } = useCallStore();
 
   const remoteAudioRef = useRef(null);
-  const [isSpeaker, setIsSpeaker] = useState(false);
-
+  const [isSpeaker, setIsSpeaker] = useState(true);
   const isConnected = callState === "connected";
 
   // Outgoing ringtone
   useEffect(() => {
-    if (callState === "calling") {
-      startRingtone("outgoing");
-    } else {
-      stopRingtone();
-    }
+    if (callState === "calling") startRingtone("outgoing");
+    else stopRingtone();
     return () => stopRingtone();
   }, [callState]);
 
-  // Attach remote audio and force play
+  // Attach remote audio
   useEffect(() => {
-    const audioEl = remoteAudioRef.current;
-    if (audioEl && remoteStream) {
-      audioEl.srcObject = remoteStream;
-      audioEl.volume = 1.0;
-      // Handle browsers that block autoplay — force play()
-      audioEl.play().catch((err) => {
-        console.warn("[VoiceCall] Audio autoplay blocked:", err.message);
-      });
+    const el = remoteAudioRef.current;
+    if (el && remoteStream) {
+      el.srcObject = remoteStream;
+      el.volume = 1.0;
+      el.play().catch((e) => console.warn("[VoiceCall] Autoplay blocked:", e.message));
     }
   }, [remoteStream, isConnected]);
 
-  const formatTime = (seconds) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}:${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
-    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  const formatTime = (s) => {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+    return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
   };
 
   if (!callUser) return null;
 
+  const ControlBtn = ({ onClick, active, danger, children, label, sublabel }) => (
+    <div className="flex flex-col items-center gap-2.5">
+      <button type="button" onClick={onClick} aria-label={label}
+        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 shadow-xl ${
+          danger
+            ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/30"
+            : active
+            ? "bg-white text-gray-900"
+            : "bg-white/10 hover:bg-white/20 text-white border border-white/15 backdrop-blur-sm"
+        }`}>
+        {children}
+      </button>
+      {sublabel && (
+        <span className={`text-[11px] font-medium tracking-wide ${danger ? "text-red-400" : "text-gray-400"}`}>
+          {sublabel}
+        </span>
+      )}
+    </div>
+  );
+
   return (
-    <div className="fixed inset-0 z-[90] flex flex-col items-center justify-between bg-black text-white select-none font-sans">
-      {/* Hidden audio element for remote voice */}
+    <div
+      className="fixed inset-0 z-[90] flex flex-col items-center justify-between text-white select-none"
+      style={{
+        fontFamily: "'Poppins', sans-serif",
+        background: "radial-gradient(ellipse at 50% 30%, #1a1a3e 0%, #0d0d1f 50%, #000 100%)",
+      }}
+    >
+      {/* Hidden audio */}
       <audio ref={remoteAudioRef} autoPlay playsInline muted={false} style={{ display: "none" }} />
 
-      {/* ─── TOP SECTION ─── */}
-      <div className="flex flex-col items-center pt-12 sm:pt-16 w-full">
-        <div className="flex items-center gap-2 border border-zinc-800 bg-zinc-950 px-3 py-1.5 mb-2">
-          <ShieldCheck size={14} className="text-white" />
-          <span className="text-[10px] font-bold tracking-widest text-gray-300 uppercase">
-            End-to-End Encrypted
-          </span>
+      {/* ── TOP ── */}
+      <div className="flex flex-col items-center pt-14 sm:pt-20 w-full">
+        <div className="flex items-center gap-2 bg-white/8 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 mb-3">
+          <ShieldCheck size={13} className="text-emerald-400" />
+          <span className="text-[11px] font-medium text-emerald-300 tracking-wide uppercase">End-to-End Encrypted</span>
         </div>
-        <p className="text-xs uppercase tracking-widest text-gray-500 font-semibold">
-          BuddyChat Voice Call
-        </p>
+        <p className="text-xs uppercase tracking-[0.2em] text-gray-500 font-medium">BuddyChat Voice</p>
       </div>
 
-      {/* ─── CENTER: Caller Info + Audio Visualizer ─── */}
-      <div className="flex flex-col items-center justify-center flex-1 my-auto">
+      {/* ── CENTER ── */}
+      <div className="flex flex-col items-center justify-center flex-1">
+        {/* Avatar with animated rings */}
         <div className="relative flex items-center justify-center mb-8">
-          {/* Audio wave rings */}
           {isConnected ? (
-            <>
-              <div
-                className="absolute w-36 h-36 border border-white/20"
-                style={{
-                  animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-                }}
-              />
-              <div
-                className="absolute w-48 h-48 border border-white/10"
-                style={{
-                  animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-                  animationDelay: "0.5s",
-                }}
-              />
-              <div
-                className="absolute w-60 h-60 border border-white/5"
-                style={{
-                  animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-                  animationDelay: "1s",
-                }}
-              />
-            </>
+            // Connected — subtle breathing rings
+            [96, 130, 164].map((size, i) => (
+              <div key={i} className="absolute border border-white/10 rounded-full"
+                style={{ width: size, height: size, animation: `pulse 2.5s ease-in-out infinite`, animationDelay: `${i * 0.4}s` }} />
+            ))
           ) : (
-            /* Calling ripples */
-            <>
-              <div className="absolute w-36 h-36 border border-white/20 animate-ping" style={{ animationDuration: "2s" }} />
-              <div className="absolute w-48 h-48 border border-white/10 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "0.3s" }} />
-              <div className="absolute w-60 h-60 border border-white/5 animate-ping" style={{ animationDuration: "3s", animationDelay: "0.6s" }} />
-            </>
+            // Ringing — ping ripples
+            [96, 130, 164].map((size, i) => (
+              <div key={i} className="absolute border border-white/15 rounded-full animate-ping"
+                style={{ width: size, height: size, animationDuration: `${2 + i * 0.5}s`, animationDelay: `${i * 0.3}s` }} />
+            ))
           )}
-
-          {/* Sharp Avatar Container */}
-          <div className="relative z-10 border-2 border-white/30 p-2 bg-black">
-            <Avatar user={callUser} size="2xl" showStatus={false} />
+          <div className="relative z-10 rounded-full shadow-2xl"
+            style={{ padding: "3px", background: "linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05))" }}>
+            <div className="rounded-full overflow-hidden">
+              <Avatar user={callUser} size="2xl" showStatus={false} />
+            </div>
           </div>
         </div>
 
-        {/* Caller Name */}
-        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2 text-white">
-          {callUser.fullName}
-        </h2>
+        <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-3 text-white">{callUser.fullName}</h2>
 
-        {/* Status / Timer */}
         {isConnected ? (
-          <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 bg-white animate-pulse" />
-            <span className="font-mono text-base text-gray-300 tracking-widest">
-              {formatTime(callDuration)}
-            </span>
+          <div className="flex items-center gap-2.5 bg-white/8 px-5 py-2 rounded-full border border-white/10">
+            <Signal size={13} className="text-emerald-400" />
+            <span className="font-mono text-sm text-gray-200 tracking-widest">{formatTime(callDuration)}</span>
           </div>
         ) : (
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 animate-pulse">
-            {callState === "calling" ? "Ringing..." : "Connecting..."}
-          </p>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {[0, 0.2, 0.4].map((d, i) => (
+                <div key={i} className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                  style={{ animationDelay: `${d}s` }} />
+              ))}
+            </div>
+            <p className="text-sm font-light text-gray-400 tracking-wider">
+              {callState === "calling" ? "Ringing" : "Connecting"}
+            </p>
+          </div>
         )}
       </div>
 
-      {/* ─── BOTTOM CONTROLS ─── */}
-      <div className="pb-12 sm:pb-16 w-full max-w-md mx-auto px-8">
-        <div className="flex items-center justify-center gap-6 sm:gap-8">
-          
-          {/* Speaker Toggle */}
-          <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsSpeaker(!isSpeaker)}
-              className={`w-14 h-14 border flex items-center justify-center transition-all active:scale-95 ${
-                isSpeaker
-                  ? "bg-white text-black border-white"
-                  : "bg-zinc-900 text-white border-zinc-800 hover:bg-zinc-800"
-              }`}
-              aria-label={isSpeaker ? "Disable speaker" : "Enable speaker"}
-            >
-              <Volume2 size={20} />
-            </button>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Speaker</span>
-          </div>
+      {/* ── BOTTOM CONTROLS ── */}
+      <div className="pb-14 sm:pb-20 w-full max-w-xs mx-auto px-8">
+        <div className="flex items-center justify-between">
 
-          {/* Mute Toggle */}
-          <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleMute}
-              className={`w-14 h-14 border flex items-center justify-center transition-all active:scale-95 ${
-                isMuted
-                  ? "bg-white text-black border-white"
-                  : "bg-zinc-900 text-white border-zinc-800 hover:bg-zinc-800"
-              }`}
-              aria-label={isMuted ? "Unmute" : "Mute"}
-            >
-              {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
-            </button>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">
-              {isMuted ? "Unmute" : "Mute"}
-            </span>
-          </div>
+          <ControlBtn onClick={() => setIsSpeaker(!isSpeaker)} active={isSpeaker}
+            label="Speaker" sublabel="Speaker">
+            {isSpeaker ? <Volume2 size={21} /> : <VolumeX size={21} />}
+          </ControlBtn>
 
-          {/* End Call */}
-          <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={endCall}
-              className="w-14 h-14 bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all active:scale-95"
-              aria-label="End call"
-            >
-              <PhoneOff size={22} />
-            </button>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-red-500">End</span>
-          </div>
+          <ControlBtn onClick={toggleMute} active={isMuted} label={isMuted ? "Unmute" : "Mute"}
+            sublabel={isMuted ? "Unmute" : "Mute"}>
+            {isMuted ? <MicOff size={21} /> : <Mic size={21} />}
+          </ControlBtn>
+
+          <ControlBtn onClick={endCall} danger label="End call" sublabel="End">
+            <PhoneOff size={23} />
+          </ControlBtn>
 
         </div>
       </div>

@@ -26,7 +26,7 @@
     min-height: 100vh;
     /* Use dvh (dynamic viewport height) when supported — critical for mobile browsers */
     min-height: 100dvh;
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     /* Prevent rubber-band overscroll on iOS causing layout issues */

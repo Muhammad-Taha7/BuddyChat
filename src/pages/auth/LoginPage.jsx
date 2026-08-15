@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 
 import { toast } from "react-hot-toast";
 import { Mail, Lock, ArrowRight, Loader2, MessageSquare, Sparkles, ShieldCheck, Zap } from "lucide-react";
@@ -12,7 +12,12 @@ const LoginPage = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuthStore();
+
+  // If already authenticated, redirect to chat
+  if (!authLoading && isAuthenticated) {
+    return <Navigate to="/chat" replace />;
+  }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

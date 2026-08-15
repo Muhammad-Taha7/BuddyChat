@@ -6,6 +6,7 @@ import { Toaster, toast } from "react-hot-toast";
 import useAuthStore from "./store/useAuthStore";
 import useSocketStore from "./store/useSocketStore";
 import useCallStore from "./store/useCallStore";
+import useChatStore from "./store/useChatStore";
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -28,6 +29,8 @@ import VoiceCallPage from "./pages/call/VoiceCallPage";
 import ChatLayout from "./pages/chat/ChatLayout";
 import SearchPage from "./pages/user/SearchPage";
 import FriendRequestsPage from "./pages/user/FriendRequestsPage";
+import FriendsPage from "./pages/user/FriendsPage";
+import CallHistoryPage from "./pages/call/CallHistoryPage";
 import ProfilePage from "./pages/user/ProfilePage";
 
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -60,6 +63,30 @@ export const App = () => {
       disconnect();
     }
   }, [user, token, connect, disconnect]);
+
+  // messagesRead & messagesDelivered — update message ticks in real time
+  useEffect(() => {
+    if (!socket) return;
+    const handleMessagesRead = ({ conversationId }) => {
+      useChatStore.getState().markSentMessagesRead(conversationId);
+    };
+    const handleMessagesDelivered = ({ conversationId }) => {
+      useChatStore.getState().markSentMessagesDelivered(conversationId);
+    };
+    const handleRemoteScreenShare = ({ isScreenSharing }) => {
+      useCallStore.setState({ isRemoteScreenSharing: isScreenSharing });
+    };
+
+    socket.on("messagesRead", handleMessagesRead);
+    socket.on("messagesDelivered", handleMessagesDelivered);
+    socket.on("remoteScreenShareStatus", handleRemoteScreenShare);
+
+    return () => {
+      socket.off("messagesRead", handleMessagesRead);
+      socket.off("messagesDelivered", handleMessagesDelivered);
+      socket.off("remoteScreenShareStatus", handleRemoteScreenShare);
+    };
+  }, [socket]);
 
   // WebRTC socket listeners
   useEffect(() => {
@@ -163,6 +190,9 @@ export const App = () => {
             <Route path="/profile-setup" element={<ProfileSetupPage />} />
             
             <Route path="/chat" element={<ChatLayout />} />
+            <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/history" element={<CallHistoryPage />} />
+            <Route path="/calls" element={<CallHistoryPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/requests" element={<FriendRequestsPage />} />
             <Route path="/profile/:id" element={<ProfilePage />} />

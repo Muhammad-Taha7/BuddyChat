@@ -1,14 +1,10 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import useAuthStore from "../store/useAuthStore";
 
 const ProtectedRoute = () => {
-  const { isAuthenticated, user, isLoading, checkAuth } = useAuthStore();
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+  const { isAuthenticated, user, isLoading } = useAuthStore();
 
   if (isLoading) {
     return (

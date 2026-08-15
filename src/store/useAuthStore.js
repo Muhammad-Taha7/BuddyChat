@@ -26,6 +26,15 @@ const scheduleAutoLogout = (token, logoutFn) => {
     return;
   }
 
+  // JavaScript setTimeout max is 2^31-1 ms (~24.8 days).
+  // Tokens with longer expiry (e.g. 30d) would overflow and fire instantly.
+  // Cap at 24 days; on next page load checkAuth will re-evaluate.
+  const MAX_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 days in ms = safe cap
+  if (msUntilExpiry > MAX_TIMEOUT_MS) {
+    console.log(`[Auth] Token expires in ${Math.round(msUntilExpiry / 86400000)}d — too far to schedule timer, skipping auto-logout timer.`);
+    return;
+  }
+
   console.log(`[Auth] Token expires in ${Math.round(msUntilExpiry / 60000)} min — auto-logout scheduled.`);
   _logoutTimer = setTimeout(() => {
     console.log("[Auth] Token expired — auto-logging out.");
@@ -39,6 +48,8 @@ const clearAutoLogoutTimer = () => {
     _logoutTimer = null;
   }
 };
+
+let _checkAuthPromise = null;
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -68,6 +79,9 @@ const useAuthStore = create((set, get) => ({
 
   // ─── Check auth on app load ──────────────────
   checkAuth: async () => {
+    // Prevent duplicate concurrent checkAuth calls (App.jsx + ProtectedRoute race)
+    if (_checkAuthPromise) return _checkAuthPromise;
+
     const token = localStorage.getItem("token");
     if (!token) {
       set({ isLoading: false });
@@ -83,20 +97,35 @@ const useAuthStore = create((set, get) => ({
       return;
     }
 
-    try {
-      const res = await axios.get("/api/auth/me");
-      const user = res.data.data.user;
-      set({ user, token, isAuthenticated: true, isLoading: false });
+    _checkAuthPromise = (async () => {
+      try {
+        const res = await axios.get("/api/auth/me");
+        const user = res.data.data.user;
+        set({ user, token, isAuthenticated: true, isLoading: false });
 
-      // Re-schedule auto-logout using existing token
-      scheduleAutoLogout(token, () => {
-        get().clearAuth();
-        window.location.href = "/login";
-      });
-    } catch (error) {
-      localStorage.removeItem("token");
-      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
-    }
+        // Re-schedule auto-logout using existing token
+        scheduleAutoLogout(token, () => {
+          get().clearAuth();
+          window.location.href = "/login";
+        });
+      } catch (error) {
+        // Only clear token on 401 (unauthorized) — NOT on network errors
+        const status = error?.response?.status;
+        if (status === 401 || status === 403) {
+          console.log("[Auth] Token rejected by server — clearing.");
+          localStorage.removeItem("token");
+          set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+        } else {
+          // Network error / server down — keep the token, just stop loading
+          console.warn("[Auth] checkAuth failed (network/server error), keeping token:", error.message);
+          set({ isLoading: false });
+        }
+      } finally {
+        _checkAuthPromise = null;
+      }
+    })();
+
+    return _checkAuthPromise;
   },
 
   // ─── Update user profile data ────────────────

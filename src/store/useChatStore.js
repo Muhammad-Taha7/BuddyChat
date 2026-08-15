@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import axios from "../lib/axios";
+import useSocketStore from "./useSocketStore";
 
 const useChatStore = create((set, get) => ({
   conversations: [],
@@ -145,19 +146,48 @@ const useChatStore = create((set, get) => ({
     }));
   },
 
-  // Update messages as read
+  // Update messages as read + emit socket event for blue ticks
   markMessagesRead: (conversationId) => {
+    const socket = useSocketStore.getState().socket;
+
+    // Find the sender of unread messages to notify them via socket
+    const currentMessages = get().messages;
+    const unreadMessages = currentMessages.filter((m) => !m.isRead);
+    const senderIds = [...new Set(unreadMessages.map((m) => m.sender?._id || m.sender).filter(Boolean))];
+
+    // Emit messageRead for each sender so they see blue ticks
+    senderIds.forEach((senderId) => {
+      socket?.emit("messageRead", { conversationId, senderId });
+    });
+
     set((state) => ({
-      messages: state.messages.map((msg) => ({
-        ...msg,
-        isRead: true,
-      })),
+      messages: state.messages.map((msg) => ({ ...msg, isRead: true })),
       conversations: state.conversations.map((conv) => {
-        if (conv._id === conversationId) {
-          return { ...conv, unreadCount: 0 };
-        }
+        if (conv._id === conversationId) return { ...conv, unreadCount: 0 };
         return conv;
       }),
+    }));
+  },
+
+  // Called from socket listener when sender's messages are delivered to recipient (user online)
+  markSentMessagesDelivered: (conversationId) => {
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        state.activeConversation?._id === conversationId
+          ? { ...msg, isDelivered: true }
+          : msg
+      ),
+    }));
+  },
+
+  // Called from socket listener when sender's messages are read by recipient
+  markSentMessagesRead: (conversationId) => {
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        state.activeConversation?._id === conversationId
+          ? { ...msg, isRead: true, isDelivered: true }
+          : msg
+      ),
     }));
   },
 

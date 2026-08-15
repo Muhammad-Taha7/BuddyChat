@@ -6,6 +6,9 @@ import {
   Search, 
   Plus, 
   UserPlus, 
+  UserCheck,
+  Phone,
+  Clock,
   X, 
   Loader2, 
   LogOut, 
@@ -533,55 +536,83 @@ const ChatSidebar = () => {
       </div>
 
       {/* Floating Bottom Dock Navbar */}
-      <nav className="absolute bottom-4 left-4 right-4 h-16 rounded-full bg-gray-50/90 border border-gray-200 backdrop-blur-md flex items-center justify-around px-3 shadow-2xl z-20 mb-safe">
+      <nav className="absolute bottom-4 left-3 right-3 h-16 rounded-full bg-gray-50/95 border border-gray-200 backdrop-blur-md flex items-center justify-around px-2 shadow-2xl z-20 mb-safe">
         <Link 
           to="/chat" 
           aria-label="Chats"
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
+          title="Chats"
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
             location.pathname === "/chat" 
               ? "bg-black text-white shadow-md shadow-black/20" 
               : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
           }`}
         >
-          <MessageSquare size={20} fill={location.pathname === "/chat" ? "currentColor" : "none"} />
+          <MessageSquare size={19} fill={location.pathname === "/chat" ? "currentColor" : "none"} />
+        </Link>
+        <Link 
+          to="/friends" 
+          aria-label="Friends"
+          title="Friends"
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+            location.pathname === "/friends" 
+              ? "bg-black text-white shadow-md shadow-black/20" 
+              : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+          }`}
+        >
+          <UserCheck size={19} />
+        </Link>
+        <Link 
+          to="/history" 
+          aria-label="Call History"
+          title="Call History"
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+            location.pathname === "/history" || location.pathname === "/calls"
+              ? "bg-black text-white shadow-md shadow-black/20" 
+              : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
+          }`}
+        >
+          <Phone size={19} />
         </Link>
         <Link 
           to="/search" 
-          aria-label="Search Friends"
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
+          aria-label="Search People"
+          title="Search People"
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
             location.pathname === "/search" 
               ? "bg-black text-white shadow-md shadow-black/20" 
               : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
           }`}
         >
-          <Search size={20} />
+          <Search size={19} />
         </Link>
         <Link 
           to="/requests" 
           aria-label="Friend Requests"
-          className={`relative w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
+          title="Friend Requests"
+          className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
             location.pathname === "/requests" 
               ? "bg-black text-white shadow-md shadow-black/20" 
               : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
           }`}
         >
-          <Users size={20} />
+          <Users size={19} />
           {unreadRequestCount > 0 && (
-            <span className="absolute top-2 right-2 flex h-3 w-3 items-center justify-center rounded-full bg-[#fc4a56] ring-2 ring-white text-[8px] font-bold text-white">
-              1
+            <span className="absolute top-1.5 right-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-[#fc4a56] ring-2 ring-white text-[8px] font-bold text-white">
+              {unreadRequestCount}
             </span>
           )}
         </Link>
         <Link 
           to={`/profile/${user?._id}`} 
-          aria-label="Settings"
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
+          aria-label="Profile"
+          title="Profile"
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
             location.pathname.startsWith("/profile") 
               ? "bg-black text-white shadow-md shadow-black/20" 
               : "text-gray-500 hover:text-gray-800 hover:bg-gray-100/50"
           }`}
         >
-          <Settings size={20} />
+          <Settings size={19} />
         </Link>
 
         {/* Logout Button */}
@@ -590,12 +621,12 @@ const ChatSidebar = () => {
           disabled={isLoggingOut}
           aria-label="Logout"
           title="Logout"
-          className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 text-gray-500 hover:text-red-500 hover:bg-red-50 disabled:opacity-50 active:scale-95"
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 text-gray-500 hover:text-red-500 hover:bg-red-50 disabled:opacity-50 active:scale-95"
         >
           {isLoggingOut ? (
-            <Loader2 size={20} className="animate-spin" />
+            <Loader2 size={18} className="animate-spin" />
           ) : (
-            <LogOut size={20} />
+            <LogOut size={18} />
           )}
         </button>
       </nav>
